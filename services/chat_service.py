@@ -9,7 +9,7 @@ from db.config import Config
 from services import UserService, SessionService
 
 
-class ChatSessionManager:
+class ChatService:
     """Main service for chat session initialization and management."""
 
     def __init__(self):
@@ -78,7 +78,7 @@ def main():
         print("✅ Configuration validated")
 
         # Initialize chat manager
-        chat_manager = ChatSessionManager()
+        chat_manager = ChatService()
 
         # Test first initialization (should create user and session)
         print("\n🔄 First initialization (should create new user and session)...")
