@@ -31,7 +31,7 @@ CREATE TABLE chat_sessions (
     ended_at TIMESTAMP
 );
 
-CREATE TABLE conversation_memory (
+CREATE TABLE conversations_memory (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     chat_session_id UUID NOT NULL REFERENCES chat_sessions(id),
     role TEXT CHECK (role IN ('user', 'assistant', 'system')),
