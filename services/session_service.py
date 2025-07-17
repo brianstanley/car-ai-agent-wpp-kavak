@@ -13,7 +13,7 @@ from models.schemas.chat_session import ChatSession
 from models.db.chat_session import ChatSessionDB
 from db.session import SessionLocal
 
-class SessionManager:
+class SessionService:
     def _to_schema(self, db_session: ChatSessionDB) -> ChatSession:
         return ChatSession(
             id=db_session.id,
