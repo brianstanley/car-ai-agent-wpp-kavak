@@ -1,0 +1,26 @@
+import os   
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+class Config:
+    """Configuration class for the chatbot memory system."""
+    
+    # Database configuration
+    DATABASE_URL = os.getenv("DATABASE_URL")
+    
+    # OpenAI configuration
+    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+    
+    # Memory configuration
+    TOKEN_THRESHOLD = int(os.getenv("TOKEN_THRESHOLD", "4000"))
+    
+    @classmethod
+    def validate(cls):
+        """Validate that all required configuration is present."""
+        if not cls.OPENAI_API_KEY:
+            raise ValueError("OPENAI_API_KEY is required in environment variables")
+        
+        if not cls.DATABASE_URL:
+            raise ValueError("DATABASE_URL is required in environment variables") 
