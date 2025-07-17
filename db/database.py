@@ -1,73 +1,101 @@
-import psycopg2
-from psycopg2.extras import RealDictCursor
-from typing import List, Dict, Any
-from db.config import Config
+from sqlalchemy import text, inspect
+from sqlalchemy.orm import Session
+from typing import List, Dict, Any, Optional
+import logging
+
+from db.session import engine, SessionLocal
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class DatabaseManager:
-    """Database manager for PostgreSQL with pgvector support."""
+    """Database manager for PostgreSQL with pgvector support using SQLAlchemy."""
 
     def __init__(self):
-        self.connection_string = Config.DATABASE_URL
+        # Use the centralized engine and session factory from session.py
+        self.engine = engine
+        self.SessionLocal = SessionLocal
 
-    def get_connection(self):
-        """Get a database connection."""
-        return psycopg2.connect(self.connection_string)
+    def get_session(self) -> Session:
+        """Get a database session."""
+        return self.SessionLocal()
 
     def test_connection(self) -> bool:
         """Test database connection."""
+        if not self.engine:
+            logger.error("Engine not initialized")
+            return False
+
         try:
-            with self.get_connection() as conn:
-                with conn.cursor() as cursor:
-                    cursor.execute("SELECT 1")
-                    return True
+            with self.engine.connect() as connection:
+                result = connection.execute(text("SELECT 1"))
+                result.fetchone()
+                logger.info("Database connection test successful")
+                return True
         except Exception as e:
-            print(f"Database connection failed: {e}")
+            logger.error(f"Database connection failed: {e}")
             return False
 
     def list_tables(self) -> List[str]:
         """List all tables in the database."""
+        if not self.engine:
+            logger.error("Engine not initialized")
+            return []
+
         try:
-            with self.get_connection() as conn:
-                with conn.cursor() as cursor:
-                    cursor.execute("""
-                        SELECT table_name 
-                        FROM information_schema.tables 
-                        WHERE table_schema = 'public'
-                        ORDER BY table_name
-                    """)
-                    tables = [row[0] for row in cursor.fetchall()]
-                    return tables
+            inspector = inspect(self.engine)
+            tables = inspector.get_table_names()
+            logger.info(f"Found {len(tables)} tables: {tables}")
+            return tables
         except Exception as e:
-            print(f"Error listing tables: {e}")
+            logger.error(f"Error listing tables: {e}")
             return []
 
     def get_table_info(self, table_name: str) -> Dict[str, Any]:
         """Get detailed information about a specific table."""
+        if not self.engine:
+            logger.error("Engine not initialized")
+            return {}
+
         try:
-            with self.get_connection() as conn:
-                with conn.cursor(cursor_factory=RealDictCursor) as cursor:
-                    cursor.execute("""
-                        SELECT column_name, data_type, is_nullable, column_default
-                        FROM information_schema.columns 
-                        WHERE table_name = %s
-                        ORDER BY ordinal_position
-                    """, (table_name,))
-                    columns = cursor.fetchall()
-                    return {
-                        "table_name": table_name,
-                        "columns": [dict(col) for col in columns]
-                    }
+            inspector = inspect(self.engine)
+            columns = inspector.get_columns(table_name)
+
+            # Convert SQLAlchemy column info to our expected format
+            column_info = []
+            for col in columns:
+                column_info.append({
+                    "column_name": col["name"],
+                    "data_type": str(col["type"]),
+                    "is_nullable": "YES" if col.get("nullable", True) else "NO",
+                    "column_default": str(col.get("default", "")) if col.get("default") else None
+                })
+
+            return {
+                "table_name": table_name,
+                "columns": column_info
+            }
         except Exception as e:
-            print(f"Error getting table info for {table_name}: {e}")
+            logger.error(f"Error getting table info for {table_name}: {e}")
             return {}
 
     def check_pgvector_extension(self) -> bool:
         """Check if pgvector extension is installed."""
-        try:
-            with self.get_connection() as conn:
-                with conn.cursor() as cursor:
-                    cursor.execute("SELECT * FROM pg_extension WHERE extname = 'vector'")
-                    return cursor.fetchone() is not None
-        except Exception as e:
-            print(f"Error checking pgvector extension: {e}")
+        if not self.engine:
+            logger.error("Engine not initialized")
             return False
+
+        try:
+            with self.engine.connect() as connection:
+                result = connection.execute(text("SELECT * FROM pg_extension WHERE extname = 'vector'"))
+                return result.fetchone() is not None
+        except Exception as e:
+            logger.error(f"Error checking pgvector extension: {e}")
+            return False
+
+    def close(self):
+        """Close database connections."""
+        # Note: With centralized session management,
+        # individual DatabaseManager instances don't need to dispose the engine
+        # The engine is shared across the application
+        logger.info("DatabaseManager instance closed")
