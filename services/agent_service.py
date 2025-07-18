@@ -217,15 +217,15 @@ class AgentService:
         # Step 1: Build system message with persona and instruction
         print("   📝 Step 1: Adding system message...")
         system_content = self.prompt_builder.add_system(self.persona, self.instruction).system_prompt
-        
+
         # Step 1.5: Add user preferences to system message
         print("   📝 Step 1.5: Adding user preferences...")
         preferences_section = self._build_user_preferences_section()
         if preferences_section:
             system_content += f"\n\n{preferences_section}"
-        
+
         messages.append({"role": "system", "content": system_content})
-        
+
         # Step 2: Add conversation history as separate messages
         try:
             recent_messages = self.memory_service.get_last_n_messages(UUID(memory_id), n=10)
@@ -288,25 +288,24 @@ class AgentService:
         except Exception as e:
             return f"❌ Error getting response from OpenAI: {e}"
 
-
     def _build_user_preferences_section(self) -> str:
         """
         Build a formatted string containing the user's preferences for inclusion in the system message.
-        
+
         Returns:
             str: Formatted preferences section or empty string if no preferences
         """
         if not self.user or not self.user.preferences:
             return ""
-        
+
         preferences = self.user.preferences
         if not preferences or not isinstance(preferences, dict):
             return ""
-        
+
         # Build preferences section
         preferences_text = "PREFERENCIAS DEL USUARIO:\n"
         preferences_text += "=" * 50 + "\n"
-        
+
         # Personal information
         if preferences.get('name'):
             preferences_text += f"Nombre: {preferences['name']}\n"
@@ -314,7 +313,7 @@ class AgentService:
             preferences_text += f"Email: {preferences['mail']}\n"
         if preferences.get('ine'):
             preferences_text += f"INE: {preferences['ine']}\n"
-        
+
         # Vehicle preferences
         vehicle_prefs = []
         if preferences.get('make'):
@@ -325,40 +324,40 @@ class AgentService:
             vehicle_prefs.append(f"Año: {preferences['year']}")
         if preferences.get('version'):
             vehicle_prefs.append(f"Versión: {preferences['version']}")
-        
+
         if vehicle_prefs:
             preferences_text += "Vehículo deseado:\n"
             for pref in vehicle_prefs:
                 preferences_text += f"  - {pref}\n"
-        
+
         # Price and mileage ranges
         if preferences.get('price') and isinstance(preferences['price'], list) and len(preferences['price']) == 2:
             min_price, max_price = preferences['price']
             preferences_text += f"Rango de precio: ${min_price:,} - ${max_price:,} USD\n"
-        
+
         if preferences.get('km') and isinstance(preferences['km'], list) and len(preferences['km']) == 2:
             min_km, max_km = preferences['km']
             if min_km == 0:
                 preferences_text += f"Kilometraje: Nuevo (0 km) hasta {max_km:,} km\n"
             else:
                 preferences_text += f"Kilometraje: {min_km:,} - {max_km:,} km\n"
-        
+
         # Features
         features = []
         if preferences.get('bluetooth') is True:
             features.append("Bluetooth")
         if preferences.get('car_play') is True:
             features.append("Apple CarPlay")
-        
+
         if features:
             preferences_text += f"Características deseadas: {', '.join(features)}\n"
-        
+
         # Other preferences
         if preferences.get('other_preferences'):
             preferences_text += f"Otras preferencias: {preferences['other_preferences']}\n"
-        
+
         preferences_text += "=" * 50 + "\n"
-        
+
         print(f"   ✅ Added user preferences to system message")
         return preferences_text
 

@@ -60,6 +60,24 @@ CREATE TABLE summaries_memory (
     embedding VECTOR(1536)
 );
 
+CREATE TABLE cars (
+    id SERIAL PRIMARY KEY,
+    stock_id TEXT,
+    km INT,
+    price NUMERIC,
+    make TEXT,
+    model TEXT,
+    year INT,
+    version TEXT,
+    bluetooth BOOLEAN,
+    largo NUMERIC,
+    ancho NUMERIC,
+    altura NUMERIC,
+    car_play BOOLEAN,
+    descripcion TEXT,
+    embedding VECTOR(1536)  -- ajustá a la dimensión según el modelo OpenAI
+    );
+
 CREATE INDEX idx_users_phone_number               ON users(phone_number);
 CREATE INDEX idx_chat_sessions_user_id            ON chat_sessions(user_id);
 CREATE INDEX idx_chat_sessions_agent_id           ON chat_sessions(agent_id);
@@ -67,3 +85,7 @@ CREATE INDEX idx_conversation_memory_chat_session_id ON conversations_memory(cha
 CREATE INDEX idx_conversation_memory_created_at   ON conversations_memory(created_at);
 CREATE INDEX idx_summaries_memory_chat_session_id ON summaries_memory(chat_session_id);
 CREATE INDEX idx_agents_persona_id                ON agents(persona_id);
+
+-- Cars table indexes for improved performance
+CREATE INDEX idx_cars_stock_id                    ON cars(stock_id);
+CREATE INDEX idx_cars_embedding                   ON cars USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
