@@ -3,6 +3,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     phone_number TEXT UNIQUE NOT NULL,
+    name TEXT,
     preferences JSONB DEFAULT '{}'::jsonb,
     created_at TIMESTAMP DEFAULT now(),
     updated_at TIMESTAMP DEFAULT now()
@@ -78,6 +79,18 @@ CREATE TABLE cars (
     embedding VECTOR(1536)  -- ajustá a la dimensión según el modelo OpenAI
     );
 
+CREATE TABLE kavak_info (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    text TEXT NOT NULL,
+    filename TEXT,
+    page_numbers INTEGER[],
+    title TEXT,
+    embedding VECTOR(1536),
+    created_at TIMESTAMP DEFAULT now(),
+    updated_at TIMESTAMP DEFAULT now()
+);
+
+
 CREATE INDEX idx_users_phone_number               ON users(phone_number);
 CREATE INDEX idx_chat_sessions_user_id            ON chat_sessions(user_id);
 CREATE INDEX idx_chat_sessions_agent_id           ON chat_sessions(agent_id);
@@ -89,3 +102,6 @@ CREATE INDEX idx_agents_persona_id                ON agents(persona_id);
 -- Cars table indexes for improved performance
 CREATE INDEX idx_cars_stock_id                    ON cars(stock_id);
 CREATE INDEX idx_cars_embedding                   ON cars USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+
+
+CREATE INDEX idx_kavak_info_embedding            ON kavak_info USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);

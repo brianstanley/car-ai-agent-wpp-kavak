@@ -7,6 +7,7 @@ from models.db.summary import SummaryDB
 from models.db.user import UserDB
 from models.db.agent import AgentDB
 from models.db.persona import PersonaDB
+from models.db.kavak_info import KavakInfoDB
 
 __all__ =  [
     "UserDB",
@@ -14,6 +15,7 @@ __all__ =  [
     "ConversationMemoryDB",
     "SummaryDB",
     "AgentDB",
-    "PersonaDB"
+    "PersonaDB",
+    "KavakInfoDB"
 ]
 

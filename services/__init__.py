@@ -7,5 +7,6 @@ __all__ = [
     'SessionService',
     'ChatService',
     'MemoryService',
-    'AgentService'
+    'AgentService',
+    'KavakInfoService'
 ]

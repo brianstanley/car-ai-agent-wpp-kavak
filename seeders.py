@@ -42,14 +42,14 @@ class DatabaseSeeder:
                     )
                     persona_data = cursor.fetchone()
 
-                    if persona_data:
+                    if persona_data is not None:
                         print("✅ Car sales persona already exists")
                         return Persona(
                             id=persona_data['id'],
                             name=persona_data['name'],
                             role=persona_data['role'],
-                            goals=persona_data['goals'],
-                            background=persona_data['background']
+                            goals=persona_data.get('goals'),
+                            background=persona_data.get('background')
                         )
 
                     # Create new persona with fixed ID
@@ -101,28 +101,76 @@ class DatabaseSeeder:
                             id=agent_data['id'],
                             instruction=agent_data['instruction'],
                             application_mode=agent_data['application_mode'],
-                            persona_id=agent_data['persona_id'],
-                            tools=agent_data['tools']
+                            persona_id=agent_data.get('persona_id'),
+                            tools=agent_data.get('tools')
                         )
 
                     # Create new agent
                     instruction = """
-                        1. Saluda por su nombre y muestra empatía.  
-                        2. Recuérdale la propuesta de valor de Kavak:  
-                           - Autos seminuevos **certificados**  
-                           - **Garantía** y revisión de calidad  
-                           - **Prueba de manejo** sin costo  
-                        3. Haz preguntas para entender su presupuesto y estilo de vida.  
-                        4. Ofrece opciones claras, con precios y plazos de financiamiento.  
-                        5. **No repitas** datos o preferencias que ya conoces:  
-                           - Si el cliente mencionó antes que prefiere un SUV, **guárdalo** y úsalo sin volver a preguntarlo ni enunciarlo.  
-                           - No digas “Sé que te gustan los autos rojos” si ya lo mencionaste; simplemente filtra tu recomendación según ese dato.  
-                        6. **Evita repetir saludos**:  
-                           - Si en los últimos turnos ya hubo un “hola”, “buenos días”, etc., **no saludes de nuevo**; continúa la conversación de manera natural.  
-                        7. Evita respuestas genéricas: personaliza cada recomendación.  
-                        8. Termina siempre preguntando si hay más dudas.
-                        9. Si no sabes su nombre preguntaselo y guárdalo para futuras conversaciones.
-                        10. Trata de sonar humano. Si guardas preferencias, no le informes al usuario que lo haces, simplemente actúa como un humano que recuerda detalles de la conversación anterior.
+                        🛑 Restricciones clave (¡sigue esto al pie de la letra!):
+                            No brindes información sobre:
+                            - Autos nuevos
+                            - Marcas o modelos fuera del inventario de Kavak
+                            - No pidas información personal sensible, como:
+                            
+                                Números de tarjeta
+                                
+                                CURP
+                                
+                                RFC
+                            
+                            No ofrezcas financiamiento de terceros. Solo menciona los planes oficiales de Kavak.
+                            
+                            Toda la información debe provenir exclusivamente de:
+                            
+                            Políticas de Kavak (tienes la funcion kavak_info_search) 
+                            Inventario de Kavak (tienes la funcion car_search)
+                            Nunca cites fuentes externas
+                            
+                        📏 Unidades obligatorias:
+                            Dimensiones: metros (m)
+                            Precios: Pesos Mexicanos (MXN)
+                            Kilometraje: kilómetros (km)
+                            Año: formato completo (YYYY)
+                            
+                        🤝 Estilo de conversación:
+                            Sé siempre amigable, profesional, conciso y proactivo.
+                            
+                            Si un usuario muestra interés en un auto, ofrece la opción de financiarlo de inmediato.
+                            
+                            Si no puedes ayudar por falta de información:
+                            
+                            Acláralo amablemente
+                            
+                            Redirige hacia lo que sí puedes hacer
+                            
+                        💳 Reglas para financiamiento:
+                            Solo menciona plazos de: 3, 4, 5 o 6 años (nunca hables en meses, ni fuera de ese rango).
+                            
+                            Es obligatorio que el usuario indique:
+                            
+                            ✅ Monto de enganche → si no lo da, pídeselo amablemente
+                                
+                            ✅ Plazo → si no lo indica, recuérdale que es necesario y espera su respuesta
+                            
+                            ❌ Nunca asumas el enganche ni el plazo.
+                            
+                            ❌ Nunca decidas tú por el usuario.
+                            
+                        🧭 Cómo guiar la conversación:
+                            Si el usuario no especifica un precio, pregunta por el rango de precios que busca.
+                            
+                            Si pide algo fuera del inventario o información no permitida:
+                            
+                            Explica clara y educadamente por qué no puedes ayudar
+                            
+                            Redirige a los autos y servicios de Kavak
+                            
+                            En todo momento, tu objetivo es:
+                                                    
+                            - hacia la simulación de financiamiento
+                            
+
                     """
 
                     cursor.execute("""
@@ -155,37 +203,27 @@ class DatabaseSeeder:
         try:
             with self.get_connection() as conn:
                 with conn.cursor(cursor_factory=RealDictCursor) as cursor:
-                    # Check by ID
-                    cursor.execute(
-                        "SELECT id, phone_number FROM users WHERE id = %s",
-                        (TEST_USER_ID,)
-                    )
-                    user = cursor.fetchone()
-                    if user:
-                        print("✅ Test user already exists")
-                        return user
-
-                    # Otherwise check by phone_number
+                    # Check by phone_number first
                     cursor.execute(
                         "SELECT id, phone_number FROM users WHERE phone_number = %s",
                         ("1111",)
                     )
                     existing_user = cursor.fetchone()
+
                     if existing_user:
-                        cursor.execute("""
-                            UPDATE users SET id = %s WHERE phone_number = %s
-                            RETURNING id, phone_number
-                        """, (TEST_USER_ID, "1111"))
+                        print(f"✅ Found existing user with phone '1111' and ID {existing_user['id']}")
+                        return existing_user
                     else:
+                        # Create new user with the fixed ID
                         cursor.execute("""
                             INSERT INTO users (id, phone_number)
                             VALUES (%s, %s)
                             RETURNING id, phone_number
                         """, (TEST_USER_ID, "1111"))
-                    user = cursor.fetchone()
-                    conn.commit()
-                    print("✅ Test user created/updated")
-                    return user
+                        user = cursor.fetchone()
+                        conn.commit()
+                        print("✅ Test user created successfully")
+                        return user
 
         except Exception as e:
             print(f"❌ Error creating test user: {e}")

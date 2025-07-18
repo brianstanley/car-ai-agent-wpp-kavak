@@ -24,6 +24,7 @@ class UserService:
         return User(
             id=db_user.id,
             phone_number=db_user.phone_number,
+            name=db_user.name,
             preferences=db_user.preferences,
             created_at=db_user.created_at
         )
@@ -42,6 +43,31 @@ class UserService:
             session.commit()
             session.refresh(new_user)
             return self._to_schema(new_user)
+
+    #update user name
+    def update_user_name(self, id: str, name: str) -> Optional[User]:
+        try:
+            with SessionLocal() as session:
+                db_user = session.scalar(select(UserDB).where(UserDB.id == id))
+                if not db_user:
+                    print(f"❌ User not found with id: {id}")
+                    return None
+
+                print(f"DEBUG: Updating user name for user {id}")
+                print(f"DEBUG: Current name: {db_user.name}")
+                print(f"📝DEBUG: New name to set: {name}")
+
+                db_user.name = name
+                session.commit()
+                session.refresh(db_user)
+
+                print(f"DEBUG: User name updated successfully")
+                print(f"DEBUG: Final name: {db_user.name}")
+
+                return self._to_schema(db_user)
+        except SQLAlchemyError as e:
+            print(f"❌ Error al actualizar el nombre del usuario: {e}")
+            raise
 
     def update_preferences(self, id: str, preferences: dict) -> Optional[User]:
         try:

@@ -10,11 +10,13 @@ from typing import Optional, List, Dict, Any
 from uuid import UUID
 from openai import OpenAI
 from dotenv import load_dotenv
+from pydantic import BaseModel, Field
 
 from services.memory_service import MemoryService
 from services.chat_service import ChatService
 from services.prompt_builder import PromptBuilder
 from services.user_service import UserService
+from tools import ExtractUserNameTool, CatalogSearchTool, CarFinancialTool, KavakInfoSearchTool
 
 # Load environment variables
 load_dotenv()
@@ -69,6 +71,12 @@ class AgentService:
         self.instruction = instruction
         self.memory_agent_i = memory_agent_i
         self.user = user
+
+        # Initialize tools
+        self.extract_user_name_tool = ExtractUserNameTool(user_service=self.user_service)
+        self.catalog_search_tool = CatalogSearchTool(openai_client=self.client)
+        self.car_financial_tool = CarFinancialTool()
+        self.kavak_info_search_tool = KavakInfoSearchTool(openai_client=self.client)
 
     def run(self, query: str, chat_session_id: str) -> str:
         """
@@ -216,7 +224,11 @@ class AgentService:
         messages = []
         # Step 1: Build system message with persona and instruction
         print("   📝 Step 1: Adding system message...")
-        system_content = self.prompt_builder.add_system(self.persona, self.instruction).system_prompt
+        if self.prompt_builder:
+            system_content = self.prompt_builder.add_system(self.persona, self.instruction).system_prompt
+        else:
+            # Fallback if prompt_builder is not available
+            system_content = f"Eres un asistente experto de Kavak. {self.persona}\n\n{self.instruction}"
 
         # Step 1.5: Add user preferences to system message
         print("   📝 Step 1.5: Adding user preferences...")
@@ -378,108 +390,15 @@ class AgentService:
     def _execute_main_loop(self, messages, query, memory_id, conversation_id, user_id: str):
         """
         Ejecuta el ciclo principal de conversación con el LLM.
-        Usa una tool fija llamada extract_preferences y permite hasta 2 pasos.
+        Usa herramientas modulares para diferentes funcionalidades.
         """
 
-        # Tool hardcodeada: extract_preferences
+        # Get tool definitions from tool classes
         tool_metas = [
-            {
-                "type": "function",
-                "function": {
-                    "name": "extract_preferences",
-                    "description": (
-                        "Extrae de la conversación cualquier preferencia o dato personal proporcionado por el usuario, "
-                        "ya sea de forma explícita o implícita. Esto incluye información de contacto y características del auto que desea, "
-                        "como marca, modelo, año, precio, kilometraje, versión y funciones adicionales como Bluetooth o CarPlay. "
-                        "Si el usuario menciona nuevas preferencias o modifica anteriores, actualiza los valores correspondientes."
-                    ),
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "name": {
-                                "type": "string",
-                                "description": "Nombre del usuario (por ejemplo, 'Carlos' o 'María García')"
-                            },
-                            "mail": {
-                                "type": "string",
-                                "description": "Correo electrónico del usuario"
-                            },
-                            "ine": {
-                                "type": "string",
-                                "description": "Número de identificación nacional (INE) en México"
-                            },
-                            "make": {
-                                "type": "string",
-                                "description": "Marca del vehículo deseado (por ejemplo, 'Toyota', 'Chevrolet', 'BM', 'BMW')"
-                            },
-                            "model": {
-                                "type": "string",
-                                "description": "Modelo específico del vehículo (por ejemplo, 'Corolla', 'Cruze')"
-                            },
-                            "year": {
-                                "type": "integer",
-                                "description": "Año del modelo del auto que le interesa al usuario (por ejemplo, 2021)"
-                            },
-                            "price": {
-                                "type": "array",
-                                "items": { "type": "integer" },
-                                "description": "Rango de precio en dólares expresado como [mínimo, máximo] (por ejemplo, [5000, 15000])"
-                            },
-                            "km": {
-                                "type": "array",
-                                "items": { "type": "integer" },
-                                "description": "Rango de kilometraje permitido: [mínimo, máximo], donde 0 indica auto nuevo (por ejemplo, [0, 80000])"
-                            },
-                            "version": {
-                                "type": "string",
-                                "description": "Versión o tipo del auto (por ejemplo, 'sedán', 'intermedio', 'básico', 'full')"
-                            },
-                            "bluetooth": {
-                                "type": "boolean",
-                                "description": "¿El usuario quiere que el auto tenga Bluetooth?"
-                            },
-                            "car_play": {
-                                "type": "boolean",
-                                "description": "¿El usuario desea que el auto tenga Apple CarPlay?"
-                            },
-                            "other_preferences": {
-                                "type": "string",
-                                "description": "Cualquier otra preferencia o dato personal relevante que el usuario haya mencionado"
-                            }
-                        },
-                        "required": []
-                    }
-                }
-            },
-            {
-                "type": "function",
-                "function": {
-                    "name": "catalog_search",
-                    "description": "Busca autos en el catálogo según los filtros del usuario.",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "price": {
-                                "type": "array",
-                                "items": {"type": "integer"},
-                                "description": "Rango de precio en dólares: [mínimo, máximo]"
-                            },
-                            "km": {
-                                "type": "array",
-                                "items": {"type": "integer"},
-                                "description": "Rango de kilometraje: [mínimo, máximo]"
-                            },
-                            "make": {"type": "string", "description": "Marca del auto"},
-                            "model": {"type": "string", "description": "Modelo del auto"},
-                            "year": {"type": "integer", "description": "Año del auto"},
-                            "version": {"type": "string", "description": "Versión del auto"},
-                            "bluetooth": {"type": "boolean", "description": "¿Tiene bluetooth?"},
-                            "car_play": {"type": "boolean", "description": "¿Tiene car play?"}
-                        },
-                        "required": []
-                    }
-                }
-            }
+            self.extract_user_name_tool.get_tool_definition(),
+            self.catalog_search_tool.get_tool_definition(),
+            self.car_financial_tool.get_tool_definition(),
+            self.kavak_info_search_tool.get_tool_definition()
         ]
 
         tool_choice = "auto"
@@ -504,52 +423,87 @@ class AgentService:
 
             if tool_calls:
                 for tool_call in tool_calls:
-                    if tool_call.function.name == "extract_preferences":
+                    if tool_call.function.name == "extract_and_save_user_name":
                         args = json.loads(tool_call.function.arguments)
 
-                        # Guardar preferencias
-                        self._merge_preferences(user_id, args)
+                        # Execute the tool
+                        result = self.extract_user_name_tool.execute(args, user_id)
 
-                        # 1ro guardo la intencion de tool call del assitant
+                        # Add assistant tool call to messages
                         messages.append({
                             "role": "assistant",
                             "tool_calls": [tool_call],
-                            "content": None  # obligatorio: no puede tener content
+                            "content": None
                         })
 
-                        # 2do guardo el mensaje de tool call
+                        # Add tool response to messages
                         messages.append({
                             "role": "tool",
                             "tool_call_id": tool_call.id,
-                            "content": "Preferencias guardadas correctamente."
+                            "content": result
                         })
+
                     elif tool_call.function.name == "catalog_search":
                         args = json.loads(tool_call.function.arguments)
-                        print("🔍 Buscando autos con los siguientes filtros:", args)
 
-                        # Aquí podrías llamar a una función para buscar en el catálogo
-                        # Por ahora, solo simularé la respuesta
-                        search_results = [
-                            {"make": "Toyota", "model": "Corolla", "year": 2020, "price": 20000},
-                            {"make": "Honda", "model": "Civic", "year": 2019, "price": 18000}
-                        ]
+                        # Execute the tool
+                        result = self.catalog_search_tool.execute(args)
 
-                        # Guardar tool call
+                        # Add assistant tool call to messages
                         messages.append({
                             "role": "assistant",
                             "tool_calls": [tool_call],
-                            "content": None  # obligatorio: no puede tener content
+                            "content": None
                         })
 
-                        # Responder con los resultados de búsqueda
+                        # Add tool response to messages
                         messages.append({
                             "role": "tool",
                             "tool_call_id": tool_call.id,
-                            "content": f"Resultados encontrados: {search_results}"
+                            "content": result
                         })
 
+                    elif tool_call.function.name == "calculate_car_financing":
+                        args = json.loads(tool_call.function.arguments)
 
-                # Segunda llamada tras la tool
+                        # Execute the tool
+                        result = self.car_financial_tool.execute(args, user_id)
+
+                        # Add assistant tool call to messages
+                        messages.append({
+                            "role": "assistant",
+                            "tool_calls": [tool_call],
+                            "content": None
+                        })
+
+                        # Add tool response to messages
+                        messages.append({
+                            "role": "tool",
+                            "tool_call_id": tool_call.id,
+                            "content": result
+                        })
+
+                    elif tool_call.function.name == "kavak_info_search":
+                        args = json.loads(tool_call.function.arguments)
+
+                        # Execute the tool
+                        result = self.kavak_info_search_tool.execute(args)
+
+                        # Add assistant tool call to messages
+                        messages.append({
+                            "role": "assistant",
+                            "tool_calls": [tool_call],
+                            "content": None
+                        })
+
+                        # Add tool response to messages
+                        messages.append({
+                            "role": "tool",
+                            "tool_call_id": tool_call.id,
+                            "content": result
+                        })
+
+                # Second call after tool execution
                 kwargs = {
                     "model": self.model,
                     "messages": messages,
@@ -565,9 +519,10 @@ class AgentService:
 
                 return final_message
 
-            # Si no hubo tool_call, responder directamente
+            # If no tool_call, respond directly
             print("No se detectó tool_call, respondiendo directamente...\n")
             return choice.message.content
-        # Si se pasan los pasos sin respuesta válida
+
+        # If we exceed steps without valid response
         raise RuntimeError("Max steps exceeded without reaching a final answer.")
 
