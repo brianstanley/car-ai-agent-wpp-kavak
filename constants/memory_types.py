@@ -1,24 +1,24 @@
 from enum import Enum
 
 class MemoryType(Enum):
-    """Types of memory stores available in the system."""
+    """Tipos de memoria disponibles en el sistema."""
     CONVERSATION_MEMORY = "conversation_memory"
     SUMMARIES = "summaries"
 
     @classmethod
     def get_description(cls, memory_type) -> str:
-        """Get description for a memory type."""
+        """Descripción de cada tipo de memoria."""
         descriptions = {
-            cls.CONVERSATION_MEMORY: "Stores conversation history between agent and user",
-            cls.SUMMARIES: "Stores compressed summaries of past conversations"
+            cls.CONVERSATION_MEMORY: "Memoria de conversación: guarda el historial reciente entre el agente y el usuario.",
+            cls.SUMMARIES: "Resúmenes: contiene un resumen comprimido de conversaciones pasadas y preferencias del usuario."
         }
-        return descriptions.get(memory_type, "Unknown memory type")
+        return descriptions.get(memory_type, "Tipo de memoria desconocido.")
 
     @classmethod
     def get_usage(cls, memory_type) -> str:
-        """Get usage instructions for a memory type."""
+        """Instrucciones de uso para cada tipo de memoria."""
         usages = {
-            cls.CONVERSATION_MEMORY: "Use for continuity and avoiding repetition",
-            cls.SUMMARIES: "Use for broader context and personalization"
+            cls.CONVERSATION_MEMORY: "Úsala para mantener la continuidad y evitar repeticiones innecesarias.",
+            cls.SUMMARIES: "Úsala para entender mejor al usuario y personalizar la conversación según su historial."
         }
-        return usages.get(memory_type, "No usage instructions available")
+        return usages.get(memory_type, "No hay instrucciones de uso disponibles.")

@@ -1,10 +1,8 @@
 from sqlalchemy import Column, String, DateTime, Text, Boolean, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.ext.declarative import declarative_base
 import uuid
 from datetime import datetime
-
-Base = declarative_base()
+from db.session import Base
 
 class ConversationMemoryDB(Base):
     __tablename__ = "conversations_memory"
@@ -14,4 +12,5 @@ class ConversationMemoryDB(Base):
     role = Column(String, nullable=False)  # 'user', 'assistant', 'system'
     content = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     embedded = Column(Boolean, default=False)

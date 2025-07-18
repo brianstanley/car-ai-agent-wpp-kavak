@@ -1,10 +1,8 @@
 from sqlalchemy import Column, DateTime, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.ext.declarative import declarative_base
 import uuid
 from datetime import datetime, UTC
-
-Base = declarative_base()
+from db.session import Base
 
 class ChatSessionDB(Base):
     __tablename__ = "chat_sessions"
@@ -14,3 +12,5 @@ class ChatSessionDB(Base):
     agent_id = Column(UUID(as_uuid=True), ForeignKey('agents.id'), nullable=True)
     started_at = Column(DateTime, default=datetime.now(UTC))
     ended_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

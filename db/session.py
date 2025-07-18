@@ -1,5 +1,5 @@
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, declarative_base
 import logging
 
 from db.config import Config
@@ -23,3 +23,6 @@ engine = create_engine(
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 logger.info("SQLAlchemy engine and session factory initialized successfully")
+
+# Global Base for all models
+Base = declarative_base()

@@ -59,10 +59,10 @@ class DatabaseSeeder:
                         RETURNING id, name, role, goals, background
                     """, (
                         TEST_PERSONA_ID,
-                        "Car Sales Agent",
-                        "sales_agent",
-                        "Help customers find and purchase the perfect vehicle by understanding their needs, providing expert advice, and ensuring a smooth buying experience.",
-                        "Experienced automotive sales professional with deep knowledge of vehicle features, financing options, and customer service. Specializes in matching customers with vehicles that meet their lifestyle and budget requirements."
+                        'Carlos',
+                        'representante de ventas',
+                        'Ayudar a cada cliente a encontrar el auto seminuevo ideal de manera fácil y confiable',
+                        'Formado en el equipo de ventas de Kavak, con 5 años de experiencia asesorando a clientes, experto en catálogo de autos certificados y planes de financiamiento.'
                     ))
                     persona_data = cursor.fetchone()
                     conn.commit()
@@ -90,7 +90,7 @@ class DatabaseSeeder:
                     # Check if agent already exists
                     cursor.execute(
                         "SELECT id, instruction, application_mode, persona_id, tools "
-                        "FROM agent WHERE id = %s",
+                        "FROM agents WHERE id = %s",
                         (TEST_AGENT_ID,)
                     )
                     agent_data = cursor.fetchone()
@@ -107,24 +107,26 @@ class DatabaseSeeder:
 
                     # Create new agent
                     instruction = """
-                    Eres un agente de ventas profesional de Kavak. Tu misión es ayudar a los clientes a encontrar y comprar el vehículo perfecto a través de nuestra plataforma de autos seminuevos certificados.
-
-                    Responsabilidades clave:
-                    - Comprender las necesidades y preferencias de cada cliente.
-                    - Explicar la propuesta de valor de Kavak: autos certificados, garantía, revisiones de calidad y prueba de manejo.
-                    - Recomendar vehículos disponibles en nuestro catálogo según presupuesto y estilo de vida.
-                    - Detallar planes de financiamiento: enganche, precio del auto, tasa de interés anual del 10% y plazos de 3 a 6 años.
-                    - Brindar atención clara, transparente y resolver cualquier duda.
-
-                    Pautas de comunicación:
-                    - Sé siempre cordial, profesional y empático.
-                    - Formula preguntas precisas para afinar la recomendación.
-                    - Evita alucinaciones y confirma la información con el catálogo.
-                    - Enfócate en la satisfacción del cliente y en generar confianza.
+                        1. Saluda por su nombre y muestra empatía.  
+                        2. Recuérdale la propuesta de valor de Kavak:  
+                           - Autos seminuevos **certificados**  
+                           - **Garantía** y revisión de calidad  
+                           - **Prueba de manejo** sin costo  
+                        3. Haz preguntas para entender su presupuesto y estilo de vida.  
+                        4. Ofrece opciones claras, con precios y plazos de financiamiento.  
+                        5. **No repitas** datos o preferencias que ya conoces:  
+                           - Si el cliente mencionó antes que prefiere un SUV, **guárdalo** y úsalo sin volver a preguntarlo ni enunciarlo.  
+                           - No digas “Sé que te gustan los autos rojos” si ya lo mencionaste; simplemente filtra tu recomendación según ese dato.  
+                        6. **Evita repetir saludos**:  
+                           - Si en los últimos turnos ya hubo un “hola”, “buenos días”, etc., **no saludes de nuevo**; continúa la conversación de manera natural.  
+                        7. Evita respuestas genéricas: personaliza cada recomendación.  
+                        8. Termina siempre preguntando si hay más dudas.
+                        9. Si no sabes su nombre preguntaselo y guárdalo para futuras conversaciones.
+                        10. Trata de sonar humano. Si guardas preferencias, no le informes al usuario que lo haces, simplemente actúa como un humano que recuerda detalles de la conversación anterior.
                     """
 
                     cursor.execute("""
-                        INSERT INTO agent (id, instruction, application_mode, persona_id)
+                        INSERT INTO agents (id, instruction, application_mode, persona_id)
                         VALUES (%s, %s, %s, %s)
                         RETURNING id, instruction, application_mode, persona_id, tools
                     """, (
@@ -208,7 +210,7 @@ class DatabaseSeeder:
                     ]
                     for role, content in messages:
                         cursor.execute("""
-                            INSERT INTO conversation_memory (
+                            INSERT INTO conversations_memory (
                               id, chat_session_id, role, content, created_at, embedded
                             ) VALUES (%s, %s, %s, %s, %s, %s)
                         """, (

@@ -5,8 +5,8 @@ Main manager for chat session initialization and management.
 
 from typing import Optional, Dict, Any
 from uuid import UUID
-from db.config import Config
-from services import UserService, SessionService
+from services.user_service import UserService
+from services.session_service import SessionService
 
 
 class ChatService:

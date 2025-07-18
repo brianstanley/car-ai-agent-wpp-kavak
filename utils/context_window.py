@@ -6,8 +6,13 @@ from constants import MemoryType
 class ContextWindow:
     @staticmethod
     def get_prompt_from_memory_types(memory_types: List[MemoryType]):
-        prompt = "You are an AI Agent endowed with a powerful, multi-tiered memory augmentation system. Your mission is to use all available memory modalities to deliver consistent, accurate, and context-rich responses. The aim is to esure that through augmented memory, you become belivable, capable, and reliable."
-
+        prompt = (
+            "Eres un agente inteligente con un sistema de memoria avanzado. Usa toda tu memoria para:\n"
+            "- Mantener la continuidad de la conversación sin repetir saludos ni datos que ya conoces.\n"
+            "- Personalizar las respuestas con base en el historial y preferencias previas.\n"
+            "- Ofrecer respuestas precisas, útiles y naturales.\n\n"
+            "Tipos de memoria disponibles:"
+        )
         for memory_type in memory_types:
             prompt += ContextWindow._generate_prompt_for_memory_type(memory_type)
 

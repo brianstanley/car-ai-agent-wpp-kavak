@@ -4,7 +4,8 @@ CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     phone_number TEXT UNIQUE NOT NULL,
     preferences JSONB DEFAULT '{}'::jsonb,
-    created_at TIMESTAMP DEFAULT now()
+    created_at TIMESTAMP DEFAULT now(),
+    updated_at TIMESTAMP DEFAULT now()
 );
 
 CREATE TABLE personas (
@@ -12,7 +13,9 @@ CREATE TABLE personas (
     name TEXT NOT NULL,
     role TEXT NOT NULL,
     goals TEXT,
-    background TEXT
+    background TEXT,
+    created_at TIMESTAMP DEFAULT now(),
+    updated_at TIMESTAMP DEFAULT now()
 );
 
 CREATE TABLE agents (
@@ -20,7 +23,9 @@ CREATE TABLE agents (
     instruction TEXT,
     application_mode TEXT DEFAULT 'assistant',
     persona_id UUID REFERENCES personas(id),
-    tools JSONB
+    tools JSONB,
+    created_at TIMESTAMP DEFAULT now(),
+    updated_at TIMESTAMP DEFAULT now()
 );
 
 CREATE TABLE chat_sessions (
@@ -28,7 +33,9 @@ CREATE TABLE chat_sessions (
     user_id UUID NOT NULL REFERENCES users(id),
     agent_id UUID REFERENCES agents(id),
     started_at TIMESTAMP DEFAULT now(),
-    ended_at TIMESTAMP
+    ended_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT now(),
+    updated_at TIMESTAMP DEFAULT now()
 );
 
 CREATE TABLE conversations_memory (
@@ -37,6 +44,7 @@ CREATE TABLE conversations_memory (
     role TEXT CHECK (role IN ('user', 'assistant', 'system')),
     content TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT now(),
+    updated_at TIMESTAMP DEFAULT now(),
     embedding VECTOR(1536),
     embedded BOOLEAN DEFAULT FALSE
 );
@@ -48,13 +56,14 @@ CREATE TABLE summaries_memory (
     period_start TIMESTAMP,
     period_end TIMESTAMP,
     created_at TIMESTAMP DEFAULT now(),
+    updated_at TIMESTAMP DEFAULT now(),
     embedding VECTOR(1536)
 );
 
 CREATE INDEX idx_users_phone_number               ON users(phone_number);
 CREATE INDEX idx_chat_sessions_user_id            ON chat_sessions(user_id);
 CREATE INDEX idx_chat_sessions_agent_id           ON chat_sessions(agent_id);
-CREATE INDEX idx_conversation_memory_chat_session_id ON conversation_memory(chat_session_id);
-CREATE INDEX idx_conversation_memory_created_at   ON conversation_memory(created_at);
+CREATE INDEX idx_conversation_memory_chat_session_id ON conversations_memory(chat_session_id);
+CREATE INDEX idx_conversation_memory_created_at   ON conversations_memory(created_at);
 CREATE INDEX idx_summaries_memory_chat_session_id ON summaries_memory(chat_session_id);
 CREATE INDEX idx_agents_persona_id                ON agents(persona_id);
