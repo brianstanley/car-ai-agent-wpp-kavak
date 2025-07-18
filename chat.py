@@ -38,7 +38,7 @@ def fetch_memory_agent_data(agent_id: str) -> Tuple[Optional[Persona], Optional[
                 persona_db = session.query(PersonaDB).filter(PersonaDB.id == agent.persona_id).first()
                 if persona_db is not None:
                     persona = Persona(
-                        id=persona_db.id,
+                        id=UUID(str(persona_db.id)),
                         name=str(persona_db.name),
                         role=str(persona_db.role),
                         goals=str(persona_db.goals) if persona_db.goals is not None else None,
@@ -49,7 +49,7 @@ def fetch_memory_agent_data(agent_id: str) -> Tuple[Optional[Persona], Optional[
             print(f"   - Agent ID: {agent.id}")
             print(f"   - Application Mode: {agent.application_mode}")
             print(f"   - Persona: {persona.name if persona else 'None'}")
-            instruction_val = agent.instruction if isinstance(agent.instruction, str) else None
+            instruction_val = str(agent.instruction) if agent.instruction is not None else None
             print(f"   - Instruction length: {len(instruction_val) if instruction_val else 0} characters")
 
             return persona, instruction_val

@@ -10,3 +10,7 @@ pandas
 tqdm
 docling
 tiktoken
+fastapi
+uvicorn[standard]
+python-multipart
+twilio
