@@ -103,6 +103,7 @@ class CatalogSearchTool:
         
         Tu tarea es **normalizar y corregir** un diccionario de preferencias del usuario para buscar autos en nuestra base de datos.
         El input será un JSON con posibles errores (por ejemplo, marcas mal escritas o rangos poco claros).
+        Por ejemplo si un auto es Sedan puede estar definido en la columna "version" 
         
         **Reglas:**
         - Corrige los errores de ortografía o interpretación en la marca ("make") y modelo ("model") usando **solo esta lista de marcas**:
@@ -148,6 +149,7 @@ class CatalogSearchTool:
                 response_format={"type": "json_object"}
             )
             normalized_content = normalize_response.choices[0].message.content
+            print(f"🔧 Filtros normalizados: {normalized_content}")
             return json.loads(normalized_content) if normalized_content else args
         except Exception as e:
             print(f"❌ Error normalizando filtros: {e}")

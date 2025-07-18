@@ -170,6 +170,7 @@ class DatabaseSeeder:
                                                     
                             - hacia la simulación de financiamiento
                             
+                            Si no sabes el nombre del usuario pediselo
 
                     """
 
