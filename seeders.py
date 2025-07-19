@@ -60,7 +60,7 @@ class DatabaseSeeder:
                     """, (
                         TEST_PERSONA_ID,
                         'Carlos',
-                        'representante de ventas',
+                        'Representante de ventas de Kavak',
                         'Ayudar a cada cliente a encontrar el auto seminuevo ideal de manera fácil y confiable',
                         'Formado en el equipo de ventas de Kavak, con 5 años de experiencia asesorando a clientes, experto en catálogo de autos certificados y planes de financiamiento.'
                     ))
