@@ -22,41 +22,7 @@ from openai import OpenAI
 load_dotenv()
 
 
-def fetch_memory_agent_data(agent_id: str) -> Tuple[Optional[Persona], Optional[str]]:
-    try:
-        with SessionLocal() as session:
-            # Fetch agent with persona relationship
-            agent = session.query(AgentDB).filter(AgentDB.id == UUID(agent_id)).first()
-
-            if not agent:
-                print(f"❌ Agent with ID {agent_id} not found")
-                return None, None
-
-            # Fetch persona if it exists
-            persona = None
-            if agent.persona_id is not None:
-                persona_db = session.query(PersonaDB).filter(PersonaDB.id == agent.persona_id).first()
-                if persona_db is not None:
-                    persona = Persona(
-                        id=UUID(str(persona_db.id)),
-                        name=str(persona_db.name),
-                        role=str(persona_db.role),
-                        goals=str(persona_db.goals) if persona_db.goals is not None else None,
-                        background=str(persona_db.background) if persona_db.background is not None else None
-                    )
-
-            print(f"✅ Fetched agent data:")
-            print(f"   - Agent ID: {agent.id}")
-            print(f"   - Application Mode: {agent.application_mode}")
-            print(f"   - Persona: {persona.name if persona else 'None'}")
-            instruction_val = str(agent.instruction) if agent.instruction is not None else None
-            print(f"   - Instruction length: {len(instruction_val) if instruction_val else 0} characters")
-
-            return persona, instruction_val
-
-    except Exception as e:
-        print(f"❌ Error fetching memory agent data: {e}")
-        return None, None
+# Remove the duplicate function - use AgentService.fetch_memory_agent_data instead
 
 
 def main():
@@ -82,7 +48,7 @@ def main():
     memory_agent_id = "22222222-2222-2222-2222-222222222222"  # ID fijo de MemAgent del seeder
 
     # Fetch persona and instruction for the memory agent
-    persona, instruction = fetch_memory_agent_data(memory_agent_id)
+    persona, instruction = AgentService.fetch_memory_agent_data(memory_agent_id)
     if not instruction:
         print("❌ Could not fetch memory agent data. Exiting.")
         return

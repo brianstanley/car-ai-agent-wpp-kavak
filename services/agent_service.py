@@ -6,7 +6,7 @@ import json
 import os
 import sys
 from datetime import datetime
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Tuple
 from uuid import UUID
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -17,6 +17,10 @@ from services.chat_service import ChatService
 from services.prompt_builder import PromptBuilder
 from services.user_service import UserService
 from tools import ExtractUserNameTool, CatalogSearchTool, CarFinancialTool, KavakInfoSearchTool
+from models.db.agent import AgentDB
+from models.db.persona import PersonaDB
+from models import Persona
+from db.session import SessionLocal
 
 # Load environment variables
 load_dotenv()
@@ -77,6 +81,52 @@ class AgentService:
         self.catalog_search_tool = CatalogSearchTool(openai_client=self.client)
         self.car_financial_tool = CarFinancialTool()
         self.kavak_info_search_tool = KavakInfoSearchTool(openai_client=self.client)
+
+    @staticmethod
+    def fetch_memory_agent_data(agent_id: str) -> Tuple[Optional[Persona], Optional[str]]:
+        """
+        Fetch memory agent data from database.
+
+        Args:
+            agent_id: The agent ID to fetch
+
+        Returns:
+            Tuple of (Persona, instruction) or (None, None) if not found
+        """
+        try:
+            with SessionLocal() as session:
+                # Fetch agent with persona relationship
+                agent = session.query(AgentDB).filter(AgentDB.id == UUID(agent_id)).first()
+
+                if not agent:
+                    print(f"Agent with ID {agent_id} not found")
+                    return None, None
+
+                # Fetch persona if it exists
+                persona = None
+                if agent.persona_id is not None:
+                    persona_db = session.query(PersonaDB).filter(PersonaDB.id == agent.persona_id).first()
+                    if persona_db is not None:
+                        persona = Persona(
+                            id=UUID(str(persona_db.id)),
+                            name=str(persona_db.name),
+                            role=str(persona_db.role),
+                            goals=str(persona_db.goals) if persona_db.goals is not None else None,
+                            background=str(persona_db.background) if persona_db.background is not None else None
+                        )
+
+                print(f"Fetched agent data:")
+                print(f"   - Agent ID: {agent.id}")
+                print(f"   - Application Mode: {agent.application_mode}")
+                print(f"   - Persona: {persona.name if persona else 'None'}")
+                instruction_val = str(agent.instruction) if agent.instruction is not None else None
+                print(f"   - Instruction length: {len(instruction_val) if instruction_val else 0} characters")
+
+                return persona, instruction_val
+
+        except Exception as e:
+            print(f"Error fetching memory agent data: {e}")
+            return None, None
 
     def run(self, query: str, chat_session_id: str) -> str:
         """
@@ -447,7 +497,7 @@ class AgentService:
                         args = json.loads(tool_call.function.arguments)
 
                         # Execute the tool
-                        result = self.catalog_search_tool.execute(args)
+                        result = self.catalog_search_tool.execute(args, 5)
 
                         # Add assistant tool call to messages
                         messages.append({

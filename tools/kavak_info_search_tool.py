@@ -40,9 +40,7 @@ class KavakInfoSearchTool:
                     "Puede responder preguntas sobre:\n"
                     "- Sucursales y ubicaciones de Kavak en México\n"
                     "- Servicios disponibles en cada sede (entrega, prueba de manejo, inspección, etc.)\n"
-                    "- Modalidades de atención (presencial, online, híbrido)\n"
-                    "- Horarios de atención de cada sede\n"
-                    "- Documentación necesaria para comprar un auto\n"
+                    "- Documentación necesaria para financiar un auto\n"
                     "- Proceso de evaluación de vehículos\n"
                     "- Período de prueba\n"
                     "- Propuesta de valor general de Kavak\n\n"
@@ -58,13 +56,13 @@ class KavakInfoSearchTool:
                                 "Ejemplos: '¿Dónde está la sede de Guadalajara?', "
                                 "'¿Puedo hacer prueba de manejo en CDMX?', "
                                 "'¿Qué horarios tiene la sucursal de Monterrey?', "
-                                "'¿Qué servicios hay en Mérida?', '¿Qué necesito para comprar un auto?'."
+                                "'¿Qué documentacion requiero para financiar un auto?'."
                             )
                         },
                         "max_results": {
                             "type": "integer",
                             "description": "Número máximo de resultados a buscar (por defecto 3)",
-                            "default": 3
+                            "default": 4
                         }
                     },
                     "required": ["query"]

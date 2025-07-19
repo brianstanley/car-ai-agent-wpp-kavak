@@ -43,42 +43,7 @@ TWILIO_WHATSAPP_PHONE_NUMBER = os.getenv("TWILIO_WHATSAPP_NUMBER")
 MEMORY_AGENT_ID = "22222222-2222-2222-2222-222222222222"
 
 
-def fetch_memory_agent_data(agent_id: str) -> tuple[Optional[Persona], Optional[str]]:
-    """Fetch memory agent data from database."""
-    try:
-        with SessionLocal() as session:
-            # Fetch agent with persona relationship
-            agent = session.query(AgentDB).filter(AgentDB.id == UUID(agent_id)).first()
-
-            if not agent:
-                logger.error(f"Agent with ID {agent_id} not found")
-                return None, None
-
-            # Fetch persona if it exists
-            persona = None
-            if agent.persona_id is not None:
-                persona_db = session.query(PersonaDB).filter(PersonaDB.id == agent.persona_id).first()
-                if persona_db is not None:
-                    persona = Persona(
-                        id=UUID(str(persona_db.id)),
-                        name=str(persona_db.name),
-                        role=str(persona_db.role),
-                        goals=str(persona_db.goals) if persona_db.goals is not None else None,
-                        background=str(persona_db.background) if persona_db.background is not None else None
-                    )
-
-            logger.info(f"Fetched agent data:")
-            logger.info(f"   - Agent ID: {agent.id}")
-            logger.info(f"   - Application Mode: {agent.application_mode}")
-            logger.info(f"   - Persona: {persona.name if persona else 'None'}")
-            instruction_val = str(agent.instruction) if agent.instruction is not None else None
-            logger.info(f"   - Instruction length: {len(instruction_val) if instruction_val else 0} characters")
-
-            return persona, instruction_val
-
-    except Exception as e:
-        logger.error(f"Error fetching memory agent data: {e}")
-        return None, None
+# Remove the duplicate function - use AgentService.fetch_memory_agent_data instead
 
 
 def parse_whatsapp_message(body: str, from_number: str) -> tuple[str, str]:
@@ -185,7 +150,7 @@ async def whatsapp_webhook(
         logger.info(f'Session: {chat_session_id}')
 
         # 5) Fetch memory agent data
-        persona, instruction = fetch_memory_agent_data(MEMORY_AGENT_ID)
+        persona, instruction = AgentService.fetch_memory_agent_data(MEMORY_AGENT_ID)
         if not instruction:
             logger.error("Could not fetch memory agent data")
             return JSONResponse(

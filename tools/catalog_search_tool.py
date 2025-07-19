@@ -340,14 +340,17 @@ class CatalogSearchTool:
             if 'similarity_score' in car:
                 result_lines.append(f"   Relevancia: {car['similarity_score']:.4f}")
 
+        print(f"🔍 Resultados formateados: {result_lines}")
+
         return "\n".join(result_lines)
 
-    def execute(self, args: Dict[str, Any]) -> str:
+    def execute(self, args: Dict[str, Any], limit: 5) -> str:
         """
         Execute the catalog search tool.
 
         Args:
             args: Tool arguments containing search filters
+            limit: Maximum number of results to return
 
         Returns:
             str: Formatted search results
@@ -369,7 +372,7 @@ class CatalogSearchTool:
             # Perform regular search
             search_results = self._search_cars_regular(
                 filters=search_filters,
-                limit=5
+                limit=limit
             )
 
             # Format results

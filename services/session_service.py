@@ -121,3 +121,21 @@ class SessionService:
         except SQLAlchemyError as e:
             print(f"❌ Error in get_session_by_id: {e}")
             raise
+
+    def get_user_sessions(self, user_id: UUID, include_ended: bool = True) -> list[ChatSession]:
+        """Get all sessions for a user."""
+        try:
+            with SessionLocal() as session:
+                query = select(ChatSessionDB).where(ChatSessionDB.user_id == user_id)
+                
+                if not include_ended:
+                    query = query.where(ChatSessionDB.ended_at.is_(None))
+                
+                query = query.order_by(ChatSessionDB.started_at.desc())
+                
+                db_sessions = session.scalars(query).all()
+                return [self._to_schema(session) for session in db_sessions]
+
+        except SQLAlchemyError as e:
+            print(f"❌ Error in get_user_sessions: {e}")
+            raise
