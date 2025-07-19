@@ -1,6 +1,5 @@
 from typing import List, Optional
 from sqlalchemy.orm import Session
-from sqlalchemy import text as sql_text
 from models.db.kavak_info import KavakInfoDB
 from db.session import SessionLocal
 from openai import OpenAI

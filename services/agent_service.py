@@ -5,12 +5,11 @@ Memory Agent service for running agents with memory and conversation context.
 import json
 import os
 import sys
-from datetime import datetime
+
 from typing import Optional, List, Dict, Any, Tuple
 from uuid import UUID
 from openai import OpenAI
 from dotenv import load_dotenv
-from pydantic import BaseModel, Field
 
 from services.memory_service import MemoryService
 from services.chat_service import ChatService
@@ -26,6 +25,16 @@ from db.session import SessionLocal
 # Load environment variables
 load_dotenv()
 
+# Configuration constants
+class AgentConfig:
+    DEFAULT_MODEL = "gpt-4o"
+    DEFAULT_MAX_TOKENS = 1000
+    DEFAULT_TEMPERATURE = 0.7
+    MAX_CONVERSATION_STEPS = 5
+    MAX_HISTORY_MESSAGES = 10
+    USER_NAME_SECTION_WIDTH = 30
+    PREFERENCES_SECTION_WIDTH = 50
+
 class AgentService:
     """Memory Agent for running agents with memory and conversation context."""
 
@@ -34,7 +43,7 @@ class AgentService:
         persona,
         instruction,
         user,
-        model: str = "gpt-4o",
+        model: str = AgentConfig.DEFAULT_MODEL,
         memory_agent_i=None,
         *,
         openai_client: Optional[OpenAI] = None,
@@ -57,14 +66,34 @@ class AgentService:
             memory_service: Memory service instance (injected)
             chat_service: Chat service instance (injected)
             user_service: User service instance (injected)
+            session_service: Session service instance (injected)
+            prompt_builder: Prompt builder instance (injected)
         """
-        # Validate required environment variables
+        self._validate_environment()
+        self._initialize_dependencies(
+            openai_client, memory_service, chat_service,
+            user_service, session_service, prompt_builder
+        )
+        self._initialize_configuration(model, persona, instruction, memory_agent_i, user)
+        self._initialize_tools()
+
+    def _validate_environment(self) -> None:
+        """Validate required environment variables."""
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
             print("❌ Error: OPENAI_API_KEY not found in environment variables")
             sys.exit(1)
 
-        # Use injected dependencies or create defaults
+    def _initialize_dependencies(
+        self,
+        openai_client: Optional[OpenAI],
+        memory_service: Optional[MemoryService],
+        chat_service: Optional[ChatService],
+        user_service: Optional[UserService],
+        session_service: Optional['SessionService'],
+        prompt_builder: Optional[PromptBuilder]
+    ) -> None:
+        api_key = os.getenv("OPENAI_API_KEY")
         self.client = openai_client or OpenAI(api_key=api_key)
         self.memory_service = memory_service or MemoryService()
         self.chat_service = chat_service or ChatService()
@@ -72,14 +101,21 @@ class AgentService:
         self.user_service = user_service
         self.prompt_builder = prompt_builder
 
-        # Configuration
+    def _initialize_configuration(
+        self,
+        model: str,
+        persona,
+        instruction,
+        memory_agent_i,
+        user
+    ) -> None:
         self.model = model
         self.persona = persona
         self.instruction = instruction
         self.memory_agent_i = memory_agent_i
         self.user = user
 
-        # Initialize tools
+    def _initialize_tools(self) -> None:
         self.extract_user_name_tool = ExtractUserNameTool(user_service=self.user_service)
         self.catalog_search_tool = CatalogSearchTool(openai_client=self.client)
         self.car_financial_tool = CarFinancialTool()
@@ -248,41 +284,75 @@ class AgentService:
             List[Dict[str, str]]: Messages list for OpenAI API
         """
         messages = []
-        # Step 1: Build system message with persona and instruction
-        print("   📝 Step 1: Adding system message...")
+
+        # Step 1: Build system message
+        system_message = self._build_system_message()
+        messages.append(system_message)
+
+        # Step 2: Add conversation history
+        self._add_conversation_history(messages, memory_id)
+
+        # Step 3: Add current user query
+        messages.append({"role": "user", "content": query})
+
+        # Step 4: Log final messages
+        self._log_prompt_messages(messages)
+
+        return messages
+
+    def _build_system_message(self) -> Dict[str, str]:
+        """Build the system message with persona, instruction, user name, and preferences."""
+        print("   📝 Step 1: Building system message...")
+
+        # Build base system content
+        system_content = self._build_base_system_content()
+
+        # Add user name section
+        system_content = self._add_user_name_to_system(system_content)
+
+        # Add user preferences section
+        system_content = self._add_user_preferences_to_system(system_content)
+
+        return {"role": "system", "content": system_content}
+
+    def _build_base_system_content(self) -> str:
+        """Build the base system content with persona and instruction."""
         if self.prompt_builder:
-            system_content = self.prompt_builder.add_system(self.persona, self.instruction).system_prompt
+            return self.prompt_builder.add_system(self.persona, self.instruction).system_prompt
         else:
             # Fallback if prompt_builder is not available
-            system_content = f"Eres un asistente experto de Kavak. {self.persona}\n\n{self.instruction}"
+            return f"Eres un asistente experto de Kavak. {self.persona}\n\n{self.instruction}"
 
-        # Step 1.5: Add user name to system message
+    def _add_user_name_to_system(self, system_content: str) -> str:
+        """Add user name section to system content."""
         print("   📝 Step 1.5: Adding user name...")
         user_name_section = self._build_user_name_section()
         if user_name_section:
             system_content += f"\n\n{user_name_section}"
+        return system_content
 
-        # Step 1.6: Add user preferences to system message
+    def _add_user_preferences_to_system(self, system_content: str) -> str:
+        """Add user preferences section to system content."""
         print("   📝 Step 1.6: Adding user preferences...")
         preferences_section = self._build_user_preferences_section()
         if preferences_section:
             system_content += f"\n\n{preferences_section}"
+        return system_content
 
-        messages.append({"role": "system", "content": system_content})
-
-        # Step 2: Add conversation history as separate messages
+    def _add_conversation_history(self, messages: List[Dict[str, str]], memory_id: str) -> None:
+        """Add conversation history to messages."""
         try:
-            recent_messages = self.memory_service.get_last_n_messages(UUID(memory_id), n=10)
+            recent_messages = self.memory_service.get_last_n_messages(
+                UUID(memory_id),
+                n=AgentConfig.MAX_HISTORY_MESSAGES
+            )
             history_count = 0
 
             for msg in recent_messages:
                 role = msg['role']
                 content = msg['content']
-                if role == 'user':
-                    messages.append({"role": "user", "content": content})
-                    history_count += 1
-                elif role == 'assistant':
-                    messages.append({"role": "assistant", "content": content})
+                if role in ['user', 'assistant']:
+                    messages.append({"role": role, "content": content})
                     history_count += 1
 
             print(f"   ✅ Added {history_count} history messages")
@@ -290,14 +360,10 @@ class AgentService:
         except Exception as e:
             print(f"   ⚠️ Warning: Could not add conversation history: {e}")
 
-        # Step 3: Add current user query
-        messages.append({"role": "user", "content": query})
-
-        # Step 4: Return final array
+    def _log_prompt_messages(self, messages: List[Dict[str, str]]) -> None:
+        """Log the final prompt messages for debugging."""
         for i, msg in enumerate(messages):
             print(f"  [{i}] {msg['role'].upper()}: {msg['content'][:50]}...")
-
-        return messages
 
     def _get_openai_response(self, messages: List[Any], tools: Optional[List[Dict]] = None) -> str:
         """
@@ -314,8 +380,8 @@ class AgentService:
             kwargs = {
                 "model": self.model,
                 "messages": messages,
-                "max_tokens": 1000,
-                "temperature": 0.7
+                "max_tokens": AgentConfig.DEFAULT_MAX_TOKENS,
+                "temperature": AgentConfig.DEFAULT_TEMPERATURE
             }
 
             if tools:
@@ -348,7 +414,7 @@ class AgentService:
 
         # Build preferences section
         preferences_text = "PREFERENCIAS DEL USUARIO:\n"
-        preferences_text += "=" * 50 + "\n"
+        preferences_text += "=" * AgentConfig.PREFERENCES_SECTION_WIDTH + "\n"
 
         # Personal information
         if preferences.get('name'):
@@ -400,7 +466,7 @@ class AgentService:
         if preferences.get('other_preferences'):
             preferences_text += f"Otras preferencias: {preferences['other_preferences']}\n"
 
-        preferences_text += "=" * 50 + "\n"
+        preferences_text += "=" * AgentConfig.PREFERENCES_SECTION_WIDTH + "\n"
 
         print(f"   ✅ Added user preferences to system message")
         return preferences_text
@@ -417,7 +483,7 @@ class AgentService:
 
         # Get user name from different possible sources
         user_name = None
-        
+
         # Try to get name from user object
         if hasattr(self.user, 'name') and self.user.name:
             user_name = self.user.name
@@ -425,15 +491,15 @@ class AgentService:
         elif hasattr(self.user, 'preferences') and self.user.preferences:
             if isinstance(self.user.preferences, dict) and self.user.preferences.get('name'):
                 user_name = self.user.preferences['name']
-        
+
         if not user_name:
             return ""
 
         # Build user name section
         user_name_text = "INFORMACIÓN DEL USUARIO:\n"
-        user_name_text += "=" * 30 + "\n"
+        user_name_text += "=" * AgentConfig.USER_NAME_SECTION_WIDTH + "\n"
         user_name_text += f"Nombre: {user_name}\n"
-        user_name_text += "=" * 30 + "\n"
+        user_name_text += "=" * AgentConfig.USER_NAME_SECTION_WIDTH + "\n"
 
         print(f"   ✅ Added user name '{user_name}' to system message")
         return user_name_text
@@ -457,137 +523,108 @@ class AgentService:
         Ejecuta el ciclo principal de conversación con el LLM.
         Usa herramientas modulares para diferentes funcionalidades.
         """
+        tool_metas = self._get_tool_definitions()
 
-        # Get tool definitions from tool classes
-        tool_metas = [
+        for step in range(AgentConfig.MAX_CONVERSATION_STEPS):
+            response = self._make_openai_call(messages, tool_metas)
+            choice = response.choices[0]
+            tool_calls = getattr(choice.message, "tool_calls", [])
+
+            if tool_calls:
+                self._process_tool_calls(tool_calls, messages, user_id)
+                return self._get_final_response(messages, tool_metas)
+            else:
+                print("No se detectó tool_call, respondiendo directamente...\n")
+                return choice.message.content
+
+        raise RuntimeError("Max steps exceeded without reaching a final answer.")
+
+    def _get_tool_definitions(self) -> List[Dict]:
+        """Get tool definitions from tool classes."""
+        return [
             self.extract_user_name_tool.get_tool_definition(),
             self.catalog_search_tool.get_tool_definition(),
             self.car_financial_tool.get_tool_definition(),
             self.kavak_info_search_tool.get_tool_definition()
         ]
 
-        tool_choice = "auto"
+    def _make_openai_call(self, messages: List[Dict], tool_metas: List[Dict]) -> Any:
+        """Make OpenAI API call with tools."""
+        kwargs = {
+            "model": self.model,
+            "messages": messages,
+            "tool_choice": "auto",
+            "max_tokens": AgentConfig.DEFAULT_MAX_TOKENS,
+            "temperature": AgentConfig.DEFAULT_TEMPERATURE
+        }
 
-        for step in range(5):
-            kwargs = {
-                "model": self.model,
-                "messages": messages,
-                "tool_choice": "auto",
-                "max_tokens": 1000,
-                "temperature": 0.7
-            }
+        if tool_metas:
+            kwargs["tools"] = tool_metas
 
-            if tool_metas:
-                kwargs["tools"] = tool_metas
+        return self.client.chat.completions.create(**kwargs)
 
-            response = self.client.chat.completions.create(**kwargs)
+    def _process_tool_calls(self, tool_calls: List, messages: List[Dict], user_id: str) -> None:
+        """Process tool calls and add results to messages."""
+        tool_handlers = {
+            "extract_and_save_user_name": self._handle_extract_user_name,
+            "catalog_search": self._handle_catalog_search,
+            "calculate_car_financing": self._handle_car_financing,
+            "kavak_info_search": self._handle_kavak_info_search
+        }
 
-            choice = response.choices[0]
+        for tool_call in tool_calls:
+            function_name = tool_call.function.name
+            if function_name in tool_handlers:
+                tool_handlers[function_name](tool_call, messages, user_id)
 
-            tool_calls = getattr(choice.message, "tool_calls", [])
+    def _handle_extract_user_name(self, tool_call: Any, messages: List[Dict], user_id: str) -> None:
+        """Handle extract user name tool call."""
+        args = json.loads(tool_call.function.arguments)
+        result = self.extract_user_name_tool.execute(args, user_id)
+        self._add_tool_response(tool_call, result, messages)
 
-            if tool_calls:
-                for tool_call in tool_calls:
-                    if tool_call.function.name == "extract_and_save_user_name":
-                        args = json.loads(tool_call.function.arguments)
+    def _handle_catalog_search(self, tool_call: Any, messages: List[Dict], user_id: str) -> None:
+        """Handle catalog search tool call."""
+        args = json.loads(tool_call.function.arguments)
+        result = self.catalog_search_tool.execute(args, 5)
+        self._add_tool_response(tool_call, result, messages)
 
-                        # Execute the tool
-                        result = self.extract_user_name_tool.execute(args, user_id)
+    def _handle_car_financing(self, tool_call: Any, messages: List[Dict], user_id: str) -> None:
+        """Handle car financing tool call."""
+        args = json.loads(tool_call.function.arguments)
+        result = self.car_financial_tool.execute(args, user_id)
+        self._add_tool_response(tool_call, result, messages)
 
-                        # Add assistant tool call to messages
-                        messages.append({
-                            "role": "assistant",
-                            "tool_calls": [tool_call],
-                            "content": None
-                        })
+    def _handle_kavak_info_search(self, tool_call: Any, messages: List[Dict], user_id: str) -> None:
+        """Handle kavak info search tool call."""
+        args = json.loads(tool_call.function.arguments)
+        result = self.kavak_info_search_tool.execute(args)
+        self._add_tool_response(tool_call, result, messages)
 
-                        # Add tool response to messages
-                        messages.append({
-                            "role": "tool",
-                            "tool_call_id": tool_call.id,
-                            "content": result
-                        })
+    def _add_tool_response(self, tool_call: Any, result: str, messages: List[Dict]) -> None:
+        """Add tool call and response to messages."""
+        messages.append({
+            "role": "assistant",
+            "tool_calls": [tool_call],
+            "content": None
+        })
+        messages.append({
+            "role": "tool",
+            "tool_call_id": tool_call.id,
+            "content": result
+        })
 
-                    elif tool_call.function.name == "catalog_search":
-                        args = json.loads(tool_call.function.arguments)
+    def _get_final_response(self, messages: List[Dict], tool_metas: List[Dict]) -> str:
+        """Get final response after tool execution."""
+        kwargs = {
+            "model": self.model,
+            "messages": messages,
+            "tool_choice": "none"
+        }
 
-                        # Execute the tool
-                        result = self.catalog_search_tool.execute(args, 5)
+        if tool_metas:
+            kwargs["tools"] = tool_metas
 
-                        # Add assistant tool call to messages
-                        messages.append({
-                            "role": "assistant",
-                            "tool_calls": [tool_call],
-                            "content": None
-                        })
-
-                        # Add tool response to messages
-                        messages.append({
-                            "role": "tool",
-                            "tool_call_id": tool_call.id,
-                            "content": result
-                        })
-
-                    elif tool_call.function.name == "calculate_car_financing":
-                        args = json.loads(tool_call.function.arguments)
-
-                        # Execute the tool
-                        result = self.car_financial_tool.execute(args, user_id)
-
-                        # Add assistant tool call to messages
-                        messages.append({
-                            "role": "assistant",
-                            "tool_calls": [tool_call],
-                            "content": None
-                        })
-
-                        # Add tool response to messages
-                        messages.append({
-                            "role": "tool",
-                            "tool_call_id": tool_call.id,
-                            "content": result
-                        })
-
-                    elif tool_call.function.name == "kavak_info_search":
-                        args = json.loads(tool_call.function.arguments)
-
-                        # Execute the tool
-                        result = self.kavak_info_search_tool.execute(args)
-
-                        # Add assistant tool call to messages
-                        messages.append({
-                            "role": "assistant",
-                            "tool_calls": [tool_call],
-                            "content": None
-                        })
-
-                        # Add tool response to messages
-                        messages.append({
-                            "role": "tool",
-                            "tool_call_id": tool_call.id,
-                            "content": result
-                        })
-
-                # Second call after tool execution
-                kwargs = {
-                    "model": self.model,
-                    "messages": messages,
-                    "tool_choice": "none"
-                }
-
-                if tool_metas:
-                    kwargs["tools"] = tool_metas
-
-                response = self.client.chat.completions.create(**kwargs)
-
-                final_message = response.choices[0].message.content
-
-                return final_message
-
-            # If no tool_call, respond directly
-            print("No se detectó tool_call, respondiendo directamente...\n")
-            return choice.message.content
-
-        # If we exceed steps without valid response
-        raise RuntimeError("Max steps exceeded without reaching a final answer.")
+        response = self.client.chat.completions.create(**kwargs)
+        return response.choices[0].message.content
 
