@@ -318,6 +318,7 @@ async def send_message_to_agent(request: SendMessageRequest) -> SendMessageRespo
         # Initialize services
         chat_service = ChatService()
         memory_service = MemoryService()
+        session_service = SessionService()
         openai_client = OpenAI()
         prompt_builder = PromptBuilder()
         
@@ -331,6 +332,7 @@ async def send_message_to_agent(request: SendMessageRequest) -> SendMessageRespo
             openai_client=openai_client,
             memory_service=memory_service,
             chat_service=chat_service,
+            session_service=session_service,
             user_service=user_service,
             prompt_builder=prompt_builder
         )

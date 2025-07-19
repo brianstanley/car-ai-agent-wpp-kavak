@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 
 from services.memory_service import MemoryService
 from services.chat_service import ChatService
+from services.session_service import SessionService
 from services.prompt_builder import PromptBuilder
 from services.user_service import UserService
 from tools import ExtractUserNameTool, CatalogSearchTool, CarFinancialTool, KavakInfoSearchTool
@@ -40,6 +41,7 @@ class AgentService:
         memory_service: Optional[MemoryService] = None,
         chat_service: Optional[ChatService] = None,
         user_service: Optional[UserService] = None,
+        session_service: Optional['SessionService'] = None,
         prompt_builder: Optional[PromptBuilder] = None
     ):
         """
@@ -66,6 +68,7 @@ class AgentService:
         self.client = openai_client or OpenAI(api_key=api_key)
         self.memory_service = memory_service or MemoryService()
         self.chat_service = chat_service or ChatService()
+        self.session_service = session_service or SessionService()
         self.user_service = user_service
         self.prompt_builder = prompt_builder
 
@@ -114,14 +117,7 @@ class AgentService:
                             goals=str(persona_db.goals) if persona_db.goals is not None else None,
                             background=str(persona_db.background) if persona_db.background is not None else None
                         )
-
-                print(f"Fetched agent data:")
-                print(f"   - Agent ID: {agent.id}")
-                print(f"   - Application Mode: {agent.application_mode}")
-                print(f"   - Persona: {persona.name if persona else 'None'}")
                 instruction_val = str(agent.instruction) if agent.instruction is not None else None
-                print(f"   - Instruction length: {len(instruction_val) if instruction_val else 0} characters")
-
                 return persona, instruction_val
 
         except Exception as e:
@@ -138,17 +134,14 @@ class AgentService:
             str: The response from the agent.
         """
         try:
-            print(f"🤖 Running MemAgent with query: {query}")
-            print(f"🧠 Memory Agent ID: {self.memory_agent_i}")
             print(f"💬 Chat Session ID: {chat_session_id}")
 
             # 1) Prepare memory and conversation IDs
-            memory_id = self._prepare_memory_and_conversation_ids(chat_session_id)
+            memory_id = self._validate_session_exists(chat_session_id)
 
             # 2) Build augmented query using PromptBuilder
-            print("\n2️⃣ Building augmented query...")
+            print("\n2️⃣ Building prompt...")
             messages = self._build_prompt_messages(query, memory_id)
-
 
             # LOG DEL PROMPT QUE SE VA A ENVIAR AL LLM
             print("\n📝 PROMPT QUE SE ENVÍA AL LLM:")
@@ -156,9 +149,7 @@ class AgentService:
                 print(f"[{i}] {msg['role'].upper()}\n{msg['content']}\n{'-'*40}")
 
             # 5) Record user's query in memory
-            print("\n5️⃣ Recording user query in memory...")
             self._record_user_query(query, chat_session_id)
-
 
             # 6) Get response from OpenAI
             print("\n6️⃣ Getting response from OpenAI...")
@@ -182,56 +173,41 @@ class AgentService:
             print(error_msg)
             return error_msg
 
-    def _prepare_memory_and_conversation_ids(self, chat_session_id: str) -> str:
+    def _validate_session_exists(self, chat_session_id: str) -> str:
         """
-        Prepare memory and conversation IDs for the agent run.
-        Parameters:
-            chat_session_id (str): The chat session ID.
+        Validate that the session exists and return memory_id.
+
+        Args:
+            chat_session_id: The chat session ID to validate
+
         Returns:
-            str: The prepared memory ID.
+            str: The memory_id (same as chat_session_id)
+
+        Raises:
+            ValueError: If session doesn't exist
         """
         try:
-            # Validate chat session exists
-            chat_session_uuid = UUID(chat_session_id)
+            # Validate UUID format
+            session_uuid = UUID(chat_session_id)
 
-            # Get session from database to validate it exists using ChatService
-            if self.chat_service:
-                # Try to get the session using ChatService
-                session_info = self.chat_service.get_user_session("1111")  # Using default phone for now
-                if session_info and session_info.get('session') and str(session_info['session'].id) == chat_session_id:
-                    session = session_info['session']
+            # Use injected session_service to validate session exists
+            if self.session_service:
+                session = self.session_service.get_session_by_id(session_uuid)
+                if session:
+                    print(f"   ✅ Session validated: {session.id}")
+                    return chat_session_id  # Use as memory_id
                 else:
-                    # If not found via ChatService, try to get it directly from database
-                    from db.session import SessionLocal
-                    from models.db.chat_session import ChatSessionDB
-
-                    with SessionLocal() as db_session:
-                        session = db_session.query(ChatSessionDB).filter(ChatSessionDB.id == chat_session_uuid).first()
-                        if session:
-                            print(f"   ✅ Chat session validated: {session.id}")
-                        else:
-                            raise ValueError(f"Chat session {chat_session_id} does not exist")
+                    raise ValueError(f"Session {chat_session_id} does not exist")
             else:
-                # Fallback to direct database query if ChatService is not available
-                from db.session import SessionLocal
-                from models.db.chat_session import ChatSessionDB
-
-                with SessionLocal() as db_session:
-                    session = db_session.query(ChatSessionDB).filter(ChatSessionDB.id == chat_session_uuid).first()
-                    if session:
-                        print(f"   ✅ Chat session validated: {session.id}")
-                    else:
-                        raise ValueError(f"Chat session {chat_session_id} does not exist")
-
-            # Use the chat_session_id as the memory_id for now
-            memory_id = chat_session_id
-            return memory_id
+                # Fallback if session_service not available
+                print(f"   ⚠️ SessionService not available, skipping validation")
+                return chat_session_id
 
         except ValueError as e:
-            print(f"   ❌ Validation error: {e}")
+            print(f"   ❌ Session validation error: {e}")
             raise
         except Exception as e:
-            print(f"   ❌ Error preparing memory and conversation IDs: {e}")
+            print(f"   ❌ Error validating session: {e}")
             raise
 
     def _record_user_query(self, query: str, chat_session_id: str) -> None:
@@ -280,8 +256,14 @@ class AgentService:
             # Fallback if prompt_builder is not available
             system_content = f"Eres un asistente experto de Kavak. {self.persona}\n\n{self.instruction}"
 
-        # Step 1.5: Add user preferences to system message
-        print("   📝 Step 1.5: Adding user preferences...")
+        # Step 1.5: Add user name to system message
+        print("   📝 Step 1.5: Adding user name...")
+        user_name_section = self._build_user_name_section()
+        if user_name_section:
+            system_content += f"\n\n{user_name_section}"
+
+        # Step 1.6: Add user preferences to system message
+        print("   📝 Step 1.6: Adding user preferences...")
         preferences_section = self._build_user_preferences_section()
         if preferences_section:
             system_content += f"\n\n{preferences_section}"
@@ -422,6 +404,39 @@ class AgentService:
 
         print(f"   ✅ Added user preferences to system message")
         return preferences_text
+
+    def _build_user_name_section(self) -> str:
+        """
+        Build a formatted string containing the user's name for inclusion in the system message.
+
+        Returns:
+            str: Formatted user name section or empty string if no name
+        """
+        if not self.user:
+            return ""
+
+        # Get user name from different possible sources
+        user_name = None
+        
+        # Try to get name from user object
+        if hasattr(self.user, 'name') and self.user.name:
+            user_name = self.user.name
+        # Try to get name from preferences
+        elif hasattr(self.user, 'preferences') and self.user.preferences:
+            if isinstance(self.user.preferences, dict) and self.user.preferences.get('name'):
+                user_name = self.user.preferences['name']
+        
+        if not user_name:
+            return ""
+
+        # Build user name section
+        user_name_text = "INFORMACIÓN DEL USUARIO:\n"
+        user_name_text += "=" * 30 + "\n"
+        user_name_text += f"Nombre: {user_name}\n"
+        user_name_text += "=" * 30 + "\n"
+
+        print(f"   ✅ Added user name '{user_name}' to system message")
+        return user_name_text
 
     def _merge_preferences(self, user_id, new_preferences: dict):
         """
