@@ -82,9 +82,8 @@ CREATE TABLE cars (
 CREATE TABLE kavak_info (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     text TEXT NOT NULL,
-    filename TEXT,
-    page_numbers INTEGER[],
     title TEXT,
+    meta TEXT[],
     embedding VECTOR(1536),
     created_at TIMESTAMP DEFAULT now(),
     updated_at TIMESTAMP DEFAULT now()

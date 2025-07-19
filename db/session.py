@@ -1,6 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 import logging
+from pgvector.sqlalchemy import Vector
 
 from db.config import Config
 

@@ -48,19 +48,19 @@ def main():
     print("Processing chunks and storing in database...")
     for i, chunk in enumerate(chunks):
         print(f"Processing chunk {i+1}/{len(chunks)}")
+        title = chunk.meta.headings[-1] if getattr(chunk.meta, "headings", None) else None
+        metadata = chunk.meta.metadata if getattr(chunk.meta, "metadata", None) else None
+        if metadata and hasattr(metadata[0], "dict"):
+                metadata = [item.dict() for item in metadata]
+        elif metadata and hasattr(metadata[0], "__str__"):
+            metadata = [str(item) for item in metadata]
 
-        # Extract metadata safely - simplified approach
-        filename = None
-        page_numbers = None
-        title = None
-
-        # Store in database with automatic embedding generation
         try:
             success = kavak_service.create_kavak_info_with_embedding(
                 text=chunk.text,
-                filename=filename,
-                page_numbers=page_numbers,
-                title=title
+                title=title,
+                metadata=metadata
+
             )
             if success:
                 print(f"  ✓ Stored chunk {i+1} with {len(tokenizer.tokenize(chunk.text))} tokens")
