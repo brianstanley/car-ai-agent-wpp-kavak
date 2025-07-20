@@ -7,6 +7,7 @@ import json
 from typing import Dict, Any, List, Optional
 from openai import OpenAI
 from pydantic import BaseModel, Field
+from prompts.catalog_search import get_catalog_search_normalization_prompt
 
 
 class CarFilters(BaseModel):
@@ -14,7 +15,7 @@ class CarFilters(BaseModel):
     stock_id: Optional[str] = Field(None, description="ID de stock del auto")
     make: Optional[str] = Field(None, description="Marca del auto")
     model: Optional[str] = Field(None, description="Modelo del auto")
-    year: Optional[int] = Field(None, description="Año del auto")
+    year: Optional[List[int]] = Field(None, description="Rango de año [mínimo, máximo] o año específico [año, año]")
     price: Optional[List[int]] = Field(None, description="Rango de precio [mínimo, máximo]")
     km: Optional[List[int]] = Field(None, description="Rango de kilometraje [mínimo, máximo]")
     bluetooth: Optional[bool] = Field(None, description="¿Tiene bluetooth?")
@@ -67,7 +68,11 @@ class CatalogSearchTool:
                         },
                         "make": {"type": "string", "description": "Marca del auto"},
                         "model": {"type": "string", "description": "Modelo del auto"},
-                        "year": {"type": "integer", "description": "Año del auto"},
+                        "year": {
+                            "type": "array",
+                            "items": {"type": "integer"},
+                            "description": "Rango de año [mínimo, máximo] o año específico [año, año]"
+                        },
                         "version": {"type": "string", "description": "Versión del auto"},
                         "bluetooth": {"type": "boolean", "description": "¿Tiene bluetooth?"},
                         "car_play": {"type": "boolean", "description": "¿Tiene car play?"},
@@ -98,45 +103,7 @@ class CatalogSearchTool:
         ]
         marcas_str = ", ".join(MARCA_LIST)
 
-        PREF_EXTRACTION_PROMPT = f"""
-        Eres un agente experto en autos usados de Kavak.
-        
-        Tu tarea es **normalizar y corregir** un diccionario de preferencias del usuario para buscar autos en nuestra base de datos.
-        El input será un JSON con posibles errores (por ejemplo, marcas mal escritas o rangos poco claros).
-        Por ejemplo si un auto es Sedan puede estar definido en la columna "version" 
-        
-        **Reglas:**
-        - Corrige los errores de ortografía o interpretación en la marca ("make") y modelo ("model") usando **solo esta lista de marcas**:
-          {marcas_str}
-        - Si la marca o modelo no coincide claramente con alguna opción, **omite ese campo** en el output.
-        - Si se usan términos como "barato" o "económico", asume price máximo de 30,000 USD.
-          Si dice "caro", price mínimo de 50,000 USD.
-        - Si solo menciona un límite ("menos de 40 mil"), infiere el rango apropiado (ej: price máximo 40,000).
-        - Corrige errores típicos en nombres (ej: "chebrole" => "Chevrolet", "oniz" => "Onix").
-        - Devuelve solo los campos que pueda extraer y normalizar. No inventes datos.
-        - El output debe ser un **JSON plano** con solo los campos válidos para la tabla "cars":
-          - make, model, year, price (rango [min, max]), km (rango [min, max]), version, bluetooth, car_play
-        
-        **Ejemplo de input:**
-        {{
-          "make": "Chebrole",
-          "model": "oniz",
-          "year": 2020,
-          "price": [0, 30000],
-          "km": [0, 50000]
-        }}
-        
-        **Ejemplo de output:**
-        {{
-          "make": "Chevrolet",
-          "model": "Onix",
-          "year": 2020,
-          "price": [0, 30000],
-          "km": [0, 50000]
-        }}
-        
-        Corrige y normaliza el siguiente JSON de preferencias para que sea compatible con la búsqueda en nuestra base de datos:
-        """
+        PREF_EXTRACTION_PROMPT = get_catalog_search_normalization_prompt(marcas_str)
 
         try:
             normalize_response = self.client.chat.completions.create(
@@ -172,8 +139,6 @@ class CatalogSearchTool:
             filters['make'] = args['make']
         if args.get('model'):
             filters['model'] = args['model']
-        if args.get('year'):
-            filters['year'] = args['year']
         if args.get('version'):
             filters['version'] = args['version']
         if args.get('bluetooth') is not None:
@@ -182,6 +147,9 @@ class CatalogSearchTool:
             filters['car_play'] = args['car_play']
 
         # Convert range parameters
+        if args.get('year') and isinstance(args['year'], list) and len(args['year']) == 2:
+            filters['year'] = args['year']
+
         if args.get('price') and isinstance(args['price'], list) and len(args['price']) == 2:
             filters['price'] = args['price']
 
@@ -241,9 +209,14 @@ class CatalogSearchTool:
                     base_sql += " AND descripcion ILIKE :descripcion"
                     params['descripcion'] = f"%{filters['descripcion']}%"
 
-                if filters.get('year'):
-                    base_sql += " AND year = :year"
-                    params['year'] = filters['year']
+                if filters.get('year') and isinstance(filters['year'], list) and len(filters['year']) == 2:
+                    min_year, max_year = filters['year']
+                    if min_year is not None:
+                        base_sql += " AND year >= :year_min"
+                        params['year_min'] = min_year
+                    if max_year is not None:
+                        base_sql += " AND year <= :year_max"
+                        params['year_max'] = max_year
 
                 if filters.get('price') and isinstance(filters['price'], list) and len(filters['price']) == 2:
                     min_price, max_price = filters['price']
@@ -271,9 +244,13 @@ class CatalogSearchTool:
                     base_sql += " AND car_play = :car_play"
                     params['car_play'] = filters['car_play']
 
-            base_sql += " ORDER BY price ASC LIMIT :limit"
+            # Determine ordering based on whether price filter is applied
+            if filters and filters.get('price'):
+                base_sql += " ORDER BY price ASC LIMIT :limit"
+            else:
+                base_sql += " ORDER BY year DESC LIMIT :limit"
             params['limit'] = limit
-
+            print(f"🔍 Query final ", base_sql, "con parámetros:", params)
             # Execute query
             session = SessionLocal()
 
@@ -356,7 +333,6 @@ class CatalogSearchTool:
             str: Formatted search results
         """
         try:
-            print("🔍 Buscando autos con los siguientes filtros:", args)
 
             # Normalize filters using LLM
             normalized_args = self._normalize_filters(args)
