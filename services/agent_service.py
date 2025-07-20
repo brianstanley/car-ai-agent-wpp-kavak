@@ -29,7 +29,7 @@ load_dotenv()
 class AgentConfig:
     DEFAULT_MODEL = "gpt-4o"
     DEFAULT_MAX_TOKENS = 1000
-    DEFAULT_TEMPERATURE = 0.7
+    DEFAULT_TEMPERATURE = 0.4
     MAX_CONVERSATION_STEPS = 5
     MAX_HISTORY_MESSAGES = 10
     USER_NAME_SECTION_WIDTH = 30
@@ -284,21 +284,21 @@ class AgentService:
         """
         try:
             session_uuid = UUID(chat_session_id)
-            
+
             # Check if should summarize based on sliding window
             if self.memory_service.should_summarize_conversation(session_uuid):
                 print(f"   📝 Triggering conversation summarization for session: {chat_session_id}")
-                
+
                 # Perform summarization
                 success = self.memory_service.summarize_conversation(session_uuid)
-                
+
                 if success:
                     print(f"   ✅ Conversation summarized successfully")
                 else:
                     print(f"   ❌ Failed to summarize conversation")
             else:
                 print(f"   ℹ️ No summarization needed for session: {chat_session_id}")
-                
+
         except Exception as e:
             print(f"   ⚠️ Warning: Could not check/summarize conversation: {e}")
 
@@ -376,21 +376,21 @@ class AgentService:
             conversation_messages = self.memory_service.get_session_messages_with_summary(
                 UUID(memory_id)
             )
-            
+
             history_count = 0
             summary_added = False
 
             for msg in conversation_messages:
                 role = msg['role']
                 content = msg['content']
-                
+
                 # Add summary message (system role)
                 if role == 'system' and 'RESUMEN DE CONVERSACIÓN PASADA:' in content and not summary_added:
                     messages.append({"role": "system", "content": content})
                     summary_added = True
                     history_count += 1
                     print(f"   📝 Added conversation summary")
-                
+
                 # Add user and assistant messages
                 elif role in ['user', 'assistant']:
                     messages.append({"role": role, "content": content})

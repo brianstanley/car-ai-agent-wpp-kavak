@@ -23,7 +23,7 @@ from db.config import Config
 load_dotenv()
 
 # Configuration
-CSV_PATH = "sample_caso_ai_engineer.csv"
+CSV_PATH = "data/sample_caso_ai_engineer.csv"
 EMBEDDING_MODEL = "text-embedding-3-small"
 EMBEDDING_DIMENSION = 1536  # For text-embedding-3-small
 
