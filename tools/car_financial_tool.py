@@ -122,27 +122,27 @@ class CarFinancialTool:
 
             # Format the response
             response = f"""
-🚗 **PLAN DE FINANCIAMIENTO AUTOMOTRIZ de Kavak**
-
-📊 **Detalles del Auto:**
-• Precio del auto: ${car_price:,.2f} MXN
-• Entrega: ${down_payment:,.2f} MXN
-• Monto a financiar: ${loan_amount:,.2f} MXN
-
-💰 **Condiciones del Financiamiento:**
-• Tasa de interés anual: {self.annual_interest_rate * 100}%
-• Plazo: {financing_years} años ({financing_years * 12} meses)
-
-📈 **Pagos:**
-• Pago mensual: ${monthly_payment:,.2f} MXN
-• Total de pagos: ${total_payments:,.2f} MXN
-• Total de intereses: ${total_interest:,.2f} MXN
-
-💡 **Resumen:**
-• Pagarás ${total_payments:,.2f} MXN en total
-• Los intereses representan ${total_interest:,.2f} MXN adicionales
-• Tu pago mensual será de ${monthly_payment:,.2f} MXN
-"""
+                🚗 **PLAN DE FINANCIAMIENTO AUTOMOTRIZ de Kavak**
+                
+                📊 **Detalles del Auto:**
+                • Precio del auto: ${car_price:,.2f} MXN
+                • Entrega: ${down_payment:,.2f} MXN
+                • Monto a financiar: ${loan_amount:,.2f} MXN
+                
+                💰 **Condiciones del Financiamiento:**
+                • Tasa de interés anual: {self.annual_interest_rate * 100}%
+                • Plazo: {financing_years} años ({financing_years * 12} meses)
+                
+                📈 **Pagos:**
+                • Pago mensual: ${monthly_payment:,.2f} MXN
+                • Total de pagos: ${total_payments:,.2f} MXN
+                • Total de intereses: ${total_interest:,.2f} MXN
+                
+                💡 **Resumen:**
+                • Pagarás ${total_payments:,.2f} MXN en total
+                • Los intereses representan ${total_interest:,.2f} MXN adicionales
+                • Tu pago mensual será de ${monthly_payment:,.2f} MXN
+            """
 
             return response
 

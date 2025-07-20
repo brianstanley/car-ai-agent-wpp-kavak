@@ -29,7 +29,7 @@ TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
 TWILIO_WHATSAPP_PHONE_NUMBER = os.getenv("TWILIO_WHATSAPP_NUMBER")
 MEMORY_AGENT_ID = "22222222-2222-2222-2222-222222222222"
 
-router = APIRouter(prefix="/whatsapp", tags=["WhatsApp"])
+router = APIRouter(prefix="/whaptsapp", tags=["WhatsApp"])
 
 
 # Remove the duplicate function - use AgentService.fetch_memory_agent_data instead
