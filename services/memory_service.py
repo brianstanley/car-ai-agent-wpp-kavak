@@ -15,6 +15,7 @@ from openai import OpenAI
 from models.db.conversation_memory import ConversationMemoryDB
 from models.db.summary import SummaryDB
 from db.session import SessionLocal
+from prompts.prompt_manager import prompt_manager
 
 # Configuration constants
 class MemorySummaryConfig:
@@ -365,38 +366,21 @@ class MemoryService:
             # Format messages for summarization
             conversation_text = self._format_messages_for_summary(messages)
 
-            prompt = f"""
-                Eres un especialista en resumir conversaciones de ventas de autos con memoria incremental.
-                
-                RESUMEN ANTERIOR (puede estar vacío si es la primera vez):
-                {old_summary or "[NINGUNO]"}
-                
-                CONVERSACIÓN NUEVA:
-                {conversation_text}
-                
-                INSTRUCCIONES:
-                1. Si **RESUMEN ANTERIOR** está vacío ("[NINGUNO]"), genera un **resumen inicial** de la conversación nueva.
-                2. Si **hay RESUMEN ANTERIOR**, **actualízalo**:
-                   - Añade **solo** información nueva y relevante.
-                   - Corrige o elimina datos que ya no sean válidos o que contradigan el resumen previo.
-                   - Si no hay cambios, conserva el contenido original.
-                3. Limita el resumen a **máximo {MemorySummaryConfig.SUMMARY_LENGTH_WORDS} palabras**.
-                4. Enfócate en:
-                   - Preferencias del usuario (marca, modelo, año, precio)
-                   - Información de contacto
-                   - Decisiones tomadas
-                   - Preguntas pendientes
-                   - Próximos pasos
-                5. Mantén un tono profesional, conciso y orientado al seguimiento.
-                6. Devuelve **solo** el texto del resumen actualizado, sin encabezados ni explicaciones adicionales.
-                
-                RESUMEN:
-            """
+            # Get prompt from prompts folder
+            prompt = prompt_manager.get_conversation_summary_prompt(
+                old_summary=old_summary or "[NINGUNO]",
+                conversation_text=conversation_text,
+                summary_length_words=MemorySummaryConfig.SUMMARY_LENGTH_WORDS
+            )
+            
+            # Get system prompt from prompts folder
+            system_prompt = prompt_manager.get_conversation_summary_system_prompt()
+            
             # Generate summary
             response = client.chat.completions.create(
                 model=MemorySummaryConfig.DEFAULT_MODEL,
                 messages=[
-                    {"role": "system", "content": "Eres un especialista en resumir conversaciones de ventas de autos de manera concisa y útil."},
+                    {"role": "system", "content": system_prompt},
                     {"role": "user", "content": prompt}
                 ],
                 max_tokens=MemorySummaryConfig.DEFAULT_MAX_TOKENS,
