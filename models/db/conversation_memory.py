@@ -14,3 +14,4 @@ class ConversationMemoryDB(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     embedded = Column(Boolean, default=False)
+    summarized = Column(Boolean, default=False)

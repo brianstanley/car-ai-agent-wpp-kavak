@@ -202,6 +202,9 @@ class AgentService:
             if response:
                 self._record_assistant_response(response, chat_session_id)
 
+            # 8) Check if conversation should be summarized
+            self._check_and_summarize_conversation(chat_session_id)
+
             return response or "❌ No response received from agent"
 
         except Exception as e:
@@ -271,6 +274,33 @@ class AgentService:
             self.memory_service.store_message(UUID(chat_session_id), "assistant", response)
         except Exception as e:
             print(f"   ⚠️ Warning: Could not record assistant response: {e}")
+
+    def _check_and_summarize_conversation(self, chat_session_id: str) -> None:
+        """
+        Check if conversation should be summarized and perform summarization if needed.
+
+        Parameters:
+            chat_session_id (str): The chat session ID.
+        """
+        try:
+            session_uuid = UUID(chat_session_id)
+            
+            # Check if should summarize based on sliding window
+            if self.memory_service.should_summarize_conversation(session_uuid):
+                print(f"   📝 Triggering conversation summarization for session: {chat_session_id}")
+                
+                # Perform summarization
+                success = self.memory_service.summarize_conversation(session_uuid)
+                
+                if success:
+                    print(f"   ✅ Conversation summarized successfully")
+                else:
+                    print(f"   ❌ Failed to summarize conversation")
+            else:
+                print(f"   ℹ️ No summarization needed for session: {chat_session_id}")
+                
+        except Exception as e:
+            print(f"   ⚠️ Warning: Could not check/summarize conversation: {e}")
 
     def _build_prompt_messages(self, query: str, memory_id: str) -> List[Dict[str, str]]:
         """
@@ -342,23 +372,55 @@ class AgentService:
     def _add_conversation_history(self, messages: List[Dict[str, str]], memory_id: str) -> None:
         """Add conversation history to messages."""
         try:
-            recent_messages = self.memory_service.get_last_n_messages(
-                UUID(memory_id),
-                n=AgentConfig.MAX_HISTORY_MESSAGES
+            # Use optimized method that includes summary and only unsummarized messages
+            conversation_messages = self.memory_service.get_session_messages_with_summary(
+                UUID(memory_id)
             )
+            
             history_count = 0
+            summary_added = False
 
-            for msg in recent_messages:
+            for msg in conversation_messages:
                 role = msg['role']
                 content = msg['content']
-                if role in ['user', 'assistant']:
+                
+                # Add summary message (system role)
+                if role == 'system' and 'RESUMEN DE CONVERSACIÓN PASADA:' in content and not summary_added:
+                    messages.append({"role": "system", "content": content})
+                    summary_added = True
+                    history_count += 1
+                    print(f"   📝 Added conversation summary")
+                
+                # Add user and assistant messages
+                elif role in ['user', 'assistant']:
                     messages.append({"role": role, "content": content})
                     history_count += 1
 
-            print(f"   ✅ Added {history_count} history messages")
+            print(f"   ✅ Added {history_count} history messages (including summary if available)")
 
         except Exception as e:
             print(f"   ⚠️ Warning: Could not add conversation history: {e}")
+
+            # Fallback to original method if optimized method fails
+            try:
+                print(f"   🔄 Falling back to original method...")
+                recent_messages = self.memory_service.get_last_n_messages(
+                    UUID(memory_id),
+                    n=AgentConfig.MAX_HISTORY_MESSAGES
+                )
+                history_count = 0
+
+                for msg in recent_messages:
+                    role = msg['role']
+                    content = msg['content']
+                    if role in ['user', 'assistant']:
+                        messages.append({"role": role, "content": content})
+                        history_count += 1
+
+                print(f"   ✅ Added {history_count} history messages (fallback)")
+
+            except Exception as fallback_e:
+                print(f"   ❌ Fallback also failed: {fallback_e}")
 
     def _log_prompt_messages(self, messages: List[Dict[str, str]]) -> None:
         """Log the final prompt messages for debugging."""

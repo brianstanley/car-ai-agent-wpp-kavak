@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, Text, ForeignKey
+from sqlalchemy import Column, String, DateTime, Text, ForeignKey, Integer
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from datetime import datetime
@@ -14,4 +14,6 @@ class SummaryDB(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     period_start = Column(DateTime, nullable=True)
     period_end = Column(DateTime, nullable=True)
+    message_count = Column(Integer, default=0)
+    last_message_id = Column(UUID(as_uuid=True), ForeignKey('conversations_memory.id'), nullable=True)
     embedding = Column(Text, nullable=True)  # JSON field for embedding data

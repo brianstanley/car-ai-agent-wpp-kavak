@@ -47,7 +47,8 @@ CREATE TABLE conversations_memory (
     created_at TIMESTAMP DEFAULT now(),
     updated_at TIMESTAMP DEFAULT now(),
     embedding VECTOR(1536),
-    embedded BOOLEAN DEFAULT FALSE
+    embedded BOOLEAN DEFAULT FALSE,
+    summarized BOOLEAN DEFAULT FALSE
 );
 
 CREATE TABLE summaries_memory (
@@ -56,6 +57,8 @@ CREATE TABLE summaries_memory (
     text TEXT NOT NULL,
     period_start TIMESTAMP,
     period_end TIMESTAMP,
+    message_count INTEGER DEFAULT 0,
+    last_message_id UUID REFERENCES conversations_memory(id),
     created_at TIMESTAMP DEFAULT now(),
     updated_at TIMESTAMP DEFAULT now(),
     embedding VECTOR(1536)
