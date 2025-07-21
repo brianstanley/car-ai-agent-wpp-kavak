@@ -4,26 +4,23 @@ Tool for extracting and saving user names.
 """
 
 from typing import Dict, Any, Optional
-from uuid import UUID
 from services.user_service import UserService
 
 
 class ExtractUserNameTool:
-    """Tool for extracting and saving user names from conversation."""
-    
     def __init__(self, user_service: Optional[UserService] = None):
         """
         Initialize the tool.
-        
+
         Args:
             user_service: UserService instance for database operations
         """
         self.user_service = user_service
-    
+
     def get_tool_definition(self) -> Dict[str, Any]:
         """
         Get the tool definition for OpenAI API.
-        
+
         Returns:
             Dict containing tool definition
         """
@@ -47,29 +44,28 @@ class ExtractUserNameTool:
                 }
             }
         }
-    
+
     def execute(self, args: Dict[str, Any], user_id: str) -> str:
         """
         Execute the tool.
-        
+
         Args:
             args: Tool arguments containing the name
             user_id: User ID to update
-            
+
         Returns:
             str: Success message
         """
         try:
             name = args.get("name")
             if not name:
-                return "❌ Error: No se proporcionó un nombre válido"
-            
-            # Save user name
+                return "Error: No se proporcionó un nombre válido"
+
             if self.user_service:
                 self.user_service.update_user_name(user_id, name)
                 return f"✅ Nombre '{name}' guardado correctamente."
             else:
-                return "❌ Error: UserService no disponible"
-                
+                return "Error: UserService no disponible"
+
         except Exception as e:
-            return f"❌ Error al guardar el nombre: {e}" 
+            return f"Error al guardar el nombre: {e}"

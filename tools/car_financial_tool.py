@@ -4,8 +4,6 @@ Tool for calculating car financing plans.
 """
 
 from typing import Dict, Any, Optional
-import math
-
 
 class CarFinancialTool:
     def __init__(self):

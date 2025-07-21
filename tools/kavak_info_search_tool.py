@@ -3,17 +3,14 @@
 Tool for semantic search of Kavak information.
 """
 
-import json
 from typing import Dict, Any, List, Optional
 from openai import OpenAI
-from pydantic import BaseModel, Field
 
 from services.kavak_info_service import KavakInfoService
+from prompts.conversation_summary import get_kavak_info_summary_prompt, get_kavak_info_summary_system_prompt
 
 
 class KavakInfoSearchTool:
-    """Tool for searching Kavak information using semantic search."""
-
     def __init__(self, openai_client: Optional[OpenAI] = None):
         """
         Initialize the tool.
@@ -70,36 +67,27 @@ class KavakInfoSearchTool:
             }
         }
 
-    def _summarize_results(self, results: List[Any], query: str) -> str:
+    def _summarize_results(self, results: List[Any], query: str, model: str) -> str:
         """
         Summarize search results focusing on the client's query and the synthesized answer.
 
         Args:
             results: List of search results
             query: Original client query
+            model: OpenAI model to use for summarization
 
         Returns:
             str: Focused summary with the key points and direct response
         """
         snippets = [res.text for res in results[:3]]
         content = "\n".join(snippets)
+        summary_prompt = get_kavak_info_summary_prompt(query, content)
 
-        # Build a prompt that asks only for key points and a direct response
-        summary_prompt = f"""
-            La consulta del cliente es:
-            "{query}"
-            
-            Información relevante encontrada (resumida):
-            {content}
-            
-        """
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o-mini",
+                model=model,
                 messages=[
-                    {"role": "system", "content": (
-                        "Eres un **experto en resumir** contenido complejo, capaz de identificar y mantener los aspectos más importantes. "
-                        "Tu objetivo es ofrecer un resumen claro, conciso y preciso que incluya la pregunta del cliente y los puntos clave sin perder contexto." )},
+                    {"role": "system", "content": get_kavak_info_summary_system_prompt()},
                     {"role": "user", "content": summary_prompt}
                 ],
                 temperature=0,
@@ -108,7 +96,7 @@ class KavakInfoSearchTool:
             return response.choices[0].message.content.strip()
 
         except Exception as e:
-            print(f"❌ Error en summarización: {e}")
+            print(f"Error en summarización: {e}")
             # Fallback: show query and up to two result snippets
             fallback = [res.text for res in results[:2]]
             items = "\n".join(f"- {text}" for text in fallback)
@@ -129,23 +117,21 @@ class KavakInfoSearchTool:
             max_results = args.get('max_results', 3)
 
             if not query:
-                return "❌ Error: Se requiere una consulta para buscar información de Kavak."
+                return "Error: Se requiere una consulta para buscar información de Kavak."
 
-            print(f"🔍 TOOL CALL- Buscando información de Kavak: '{query}'")
-
-            # Perform semantic search
-            results = self.kavak_info_service.search_similar(query, limit=max_results)
+            print(f"TOOL CALL- Buscando información de Kavak: '{query}'")
+            results = self.kavak_info_service.search_similar(query, limit=max_results) # use semantic search:)
 
             if not results:
-                print(f"❌ No encontré información específica sobre '{query}'.")
+                print(f"No encontré información específica sobre '{query}'.")
                 return f"No encontré información específica sobre '{query}'. ¿Podrías reformular tu pregunta o consultar sobre otro tema relacionado con Kavak?"
 
-            summarized_response = self._summarize_results(results, query)
+            summarized_response = self._summarize_results(results, query, model="gpt-4o-mini")
             print(f"✅ Encontrados {len(results)} resultados para '{query}'")
             print(f"🔍 luego de sumarizar los resultados: {summarized_response}")
             return summarized_response
 
         except Exception as e:
-            error_msg = f"❌ Error en búsqueda de información de Kavak: {e}"
+            error_msg = f"Error en búsqueda de información de Kavak: {e}"
             print(error_msg)
             return error_msg

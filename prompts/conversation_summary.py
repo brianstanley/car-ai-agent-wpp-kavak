@@ -36,6 +36,11 @@ RESUMEN:
 
 CONVERSATION_SUMMARY_SYSTEM_PROMPT = "Eres un especialista en resumir conversaciones de ventas de autos de manera concisa y útil."
 
+KAVAK_INFO_SUMMARY_SYSTEM_PROMPT = (
+    "Eres un experto en resumir contenido complejo, capaz de identificar y mantener los aspectos más importantes. "
+    "Tu objetivo es ofrecer un resumen claro, conciso y preciso que incluya la pregunta del cliente y los puntos clave sin perder contexto."
+)
+
 
 def get_conversation_summary_prompt(
     old_summary: str = "[NINGUNO]",
@@ -68,3 +73,18 @@ def get_conversation_summary_system_prompt() -> str:
         str: The system prompt for conversation summarization
     """
     return CONVERSATION_SUMMARY_SYSTEM_PROMPT
+
+
+def get_kavak_info_summary_prompt(query: str, content: str) -> str:
+    return f'''
+        La consulta del cliente es:
+        "{query}"
+        
+        Información relevante encontrada (resumida):
+        {content}
+        
+    '''
+
+
+def get_kavak_info_summary_system_prompt() -> str:
+    return KAVAK_INFO_SUMMARY_SYSTEM_PROMPT
