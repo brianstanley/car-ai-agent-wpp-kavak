@@ -5,32 +5,33 @@ This file contains the prompt template for summarizing conversations in the chat
 """
 
 CONVERSATION_SUMMARY_PROMPT_TEMPLATE = """
-Eres un especialista en resumir conversaciones de ventas de autos con memoria incremental.
+Eres un experto en generar y actualizar resúmenes de conversaciones de ventas de autos.
 
-RESUMEN ANTERIOR (puede estar vacío si es la primera vez):
+RESUMEN ANTERIOR:
 {old_summary}
 
 CONVERSACIÓN NUEVA:
 {conversation_text}
 
 INSTRUCCIONES:
-1. Si **RESUMEN ANTERIOR** está vacío ("[NINGUNO]"), genera un **resumen inicial** de la conversación nueva.
-2. Si **hay RESUMEN ANTERIOR**, **actualízalo**:
-   - Añade **solo** información nueva y relevante.
-   - Corrige o elimina datos que ya no sean válidos o que contradigan el resumen previo.
-   - Si no hay cambios, conserva el contenido original.
-3. Limita el resumen a **máximo {summary_length_words} palabras**.
-4. Enfócate en:
-   - Preferencias del usuario (marca, modelo, año, precio)
-   - Información de contacto
-   - Decisiones tomadas
-   - Preguntas pendientes
-   - Próximos pasos
-5. Mantén un tono profesional, conciso y orientado al seguimiento.
-6. Devuelve **solo** el texto del resumen actualizado, sin encabezados ni explicaciones adicionales.
-7. No guardes informacion sensible o personal del usuario.
-8. No guardes informacion no relevante como que el usuario pregunto que dia es hoy o que hora es.
-9. Es muy importante que si esta evaluando un auto en particular, guarda el modelo, PRECIO, kilometraje y año del auto que esta consultando.
+1. Si **RESUMEN ANTERIOR** es "[NINGUNO]":
+   - Genera un **resumen inicial** de la conversación nueva.
+2. Si hay **RESUMEN ANTERIOR** válido:
+   - **Actualízalo** incorporando *solo* información nueva y relevante.
+   - Corrige o elimina datos desactualizados o contradictorios.
+   - Si no hay novedades, conserva el resumen tal cual.
+3. Límite de extensión: **máximo {summary_length_words} palabras**.
+4. Debe incluir:
+   - **Preferencias del usuario**: marca, modelo, año, precio y enganche.
+   - **Datos de contacto** (si se mencionaron).
+   - **Decisiones tomadas** y **próximos pasos**.
+   - **Preguntas o asuntos pendientes**.
+   - SUPER IMPOTANTE: RECORDAR EL AUTO CON PRECIO Y KILOMETRAJE QUE SE LE BRINDO AL USUARIO y que el usuario mostro interes.
+5. No incluir:
+   - Información irrelevante (hora, saludos genéricos, etc.).
+   - Datos sensibles o privados.
+6. Tono: profesional, conciso y orientado al seguimiento.
+7. Devuelve **solo** el texto del resumen (sin encabezados ni explicaciones adicionales).
 
 RESUMEN:
 """
