@@ -36,6 +36,11 @@ jobs:
       - name: Wait for Postgres
         run: |
           until pg_isready -h localhost -p 5432 -U postgres; do sleep 1; done
+      - name: Install pgvector extension
+        run: |
+          psql -h localhost -U postgres -d kavak_test -c "CREATE EXTENSION IF NOT EXISTS vector;"
+        env:
+          PGPASSWORD: postgres
       - name: Run DB migrations
         run: |
           python setup.py --recreate
