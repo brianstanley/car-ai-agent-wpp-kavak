@@ -30,6 +30,7 @@ INSTRUCCIONES:
 6. Devuelve **solo** el texto del resumen actualizado, sin encabezados ni explicaciones adicionales.
 7. No guardes informacion sensible o personal del usuario.
 8. No guardes informacion no relevante como que el usuario pregunto que dia es hoy o que hora es.
+9. Es muy importante que si esta evaluando un auto en particular, guarda el modelo, PRECIO, kilometraje y año del auto que esta consultando.
 
 RESUMEN:
 """
