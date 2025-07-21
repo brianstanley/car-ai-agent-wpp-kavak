@@ -23,9 +23,9 @@ class MemorySummaryConfig:
     """Configuration constants for memory summarization."""
     DEFAULT_MODEL = "gpt-3.5-turbo"
     DEFAULT_MAX_TOKENS = 300
-    DEFAULT_TEMPERATURE = 0.3
-    DEFAULT_WINDOW_SIZE = 10  # Number of messages to summarize
-    DEFAULT_TOLERANCE = 4     # Tolerance before triggering summarization
+    DEFAULT_TEMPERATURE = 0.1
+    DEFAULT_WINDOW_SIZE = 12  # Number of messages to summarize
+    DEFAULT_TOLERANCE = 6     # Tolerance before triggering summarization
     SUMMARY_LENGTH_WORDS = 100
 
 class MemoryServiceError(str, Enum):
@@ -220,11 +220,11 @@ class MemoryService:
                 query = select(ConversationMemoryDB).where(
                     ConversationMemoryDB.chat_session_id == chat_session_id
                 )
-                
+
                 # Add filter for unsummarized messages if requested
                 if unsummarized_only:
                     query = query.where(ConversationMemoryDB.summarized == False)
-                
+
                 db_messages = session.scalars(
                     query.order_by(ConversationMemoryDB.created_at.desc()).limit(n)
                 ).all()
@@ -391,10 +391,10 @@ class MemoryService:
                 conversation_text=conversation_text,
                 summary_length_words=MemorySummaryConfig.SUMMARY_LENGTH_WORDS
             )
-            
+
             # Get system prompt from prompts folder
             system_prompt = prompt_manager.get_conversation_summary_system_prompt()
-            
+
             # Generate summary
             response = client.chat.completions.create(
                 model=MemorySummaryConfig.DEFAULT_MODEL,
