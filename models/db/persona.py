@@ -2,7 +2,7 @@ from sqlalchemy import Column, String, DateTime, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import uuid
-from datetime import datetime
+from datetime import datetime, UTC
 from db.session import Base
 
 class PersonaDB(Base):
@@ -14,7 +14,7 @@ class PersonaDB(Base):
     goals = Column(Text, nullable=True)
     background = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.now(UTC))
 
     # Relationship
-    agents = relationship("AgentDB", back_populates="persona") 
+    agents = relationship("AgentDB", back_populates="persona")

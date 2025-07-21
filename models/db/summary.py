@@ -1,7 +1,7 @@
-from sqlalchemy import Column, String, DateTime, Text, ForeignKey, Integer
+from sqlalchemy import Column, DateTime, Text, ForeignKey, Integer
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
-from datetime import datetime
+from datetime import datetime, UTC
 from db.session import Base
 
 class SummaryDB(Base):
@@ -10,8 +10,8 @@ class SummaryDB(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     chat_session_id = Column(UUID(as_uuid=True), ForeignKey('chat_sessions.id'), nullable=False)
     text = Column(Text, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(UTC))
+    updated_at = Column(DateTime, default=datetime.now(UTC), onupdate=datetime.utcnow)
     period_start = Column(DateTime, nullable=True)
     period_end = Column(DateTime, nullable=True)
     message_count = Column(Integer, default=0)

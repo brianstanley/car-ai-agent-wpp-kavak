@@ -1,7 +1,7 @@
 from sqlalchemy import Column, String, DateTime, JSON
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
-from datetime import datetime
+from datetime import datetime, UTC
 from db.session import Base
 
 class UserDB(Base):
@@ -11,5 +11,5 @@ class UserDB(Base):
     name = Column(String, nullable=True)
     phone_number = Column(String, unique=True, nullable=False)
     preferences = Column(JSON, default=dict)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(UTC))
+    updated_at = Column(DateTime, default=datetime.now(UTC), onupdate=datetime.utcnow)
