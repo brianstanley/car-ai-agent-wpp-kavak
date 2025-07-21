@@ -1,0 +1,17 @@
+[
+  {
+    "user_query": "hola",
+    "expected": "El agente se presenta como un agente de ventas de Kavak.",
+    "expected_tools": []
+  },
+  {
+    "user_query": "Tenes disponible un chevrolet onix de menos de 300 mil y con menos 200 mil km",
+    "expected": "El agente responde con información sobre autos disponibles en el inventario de Kavak.",
+    "expected_tools": ["catalog_search"]
+  },
+  {
+    "user_query": "¿Puedes contarme sobre la historia de Kavak?",
+    "expected": "El agente proporciona información sobre la historia de la empresa Kavak.",
+    "expected_tools": ["kavak_info_search"]
+  }
+]
