@@ -8,8 +8,6 @@ import math
 
 
 class CarFinancialTool:
-    """Tool for calculating car financing plans."""
-
     def __init__(self):
         """Initialize the tool."""
         self.annual_interest_rate = 0.10  # 10% annual interest rate
@@ -93,9 +91,8 @@ class CarFinancialTool:
             down_payment = args.get("down_payment")
             financing_years = args.get("financing_years")
 
-            # Validate inputs
             if not all([car_price is not None, down_payment is not None, financing_years is not None]):
-                return "❌ Error: Todos los parámetros son requeridos (precio del auto, enganche, años de financiamiento)"
+                return "Error: Todos los parámetros son requeridos (precio del auto, enganche, años de financiamiento)"
 
             # Type conversion and validation
             try:
@@ -103,16 +100,16 @@ class CarFinancialTool:
                 down_payment = float(down_payment)  # type: ignore
                 financing_years = int(financing_years)  # type: ignore
             except (ValueError, TypeError):
-                return "❌ Error: Los valores deben ser números válidos"
+                return "Error: Los valores deben ser números válidos"
 
             if car_price <= 0 or down_payment < 0:
-                return "❌ Error: El precio del auto debe ser mayor a 0 y el enganche no puede ser negativo"
+                return "Error: El precio del auto debe ser mayor a 0 y el enganche no puede ser negativo"
 
             if down_payment >= car_price:
-                return "❌ Error: El enganche no puede ser mayor o igual al precio del auto"
+                return "Error: El enganche no puede ser mayor o igual al precio del auto"
 
             if financing_years < self.min_years or financing_years > self.max_years:
-                return f"❌ Error: El plazo de financiamiento debe estar entre {self.min_years} y {self.max_years} años"
+                return f"Error: El plazo de financiamiento debe estar entre {self.min_years} y {self.max_years} años"
 
             # Calculate financing details
             loan_amount = car_price - down_payment

@@ -50,16 +50,16 @@ Corrige y normaliza el siguiente JSON de preferencias para que sea compatible co
 """
 
 
-def get_catalog_search_normalization_prompt(marcas_list: str) -> str:
+def get_catalog_search_normalization_prompt(brand_list: str) -> str:
     """
     Get the catalog search normalization prompt template with the given marcas list.
 
     Args:
-        marcas_list: Comma-separated list of valid car brands
+        brand_list: Comma-separated list of valid car brands
 
     Returns:
         str: The formatted prompt for catalog search normalization
     """
     return CATALOG_SEARCH_NORMALIZATION_PROMPT_TEMPLATE.format(
-        marcas_list=marcas_list
+        marcas_list=brand_list
     )

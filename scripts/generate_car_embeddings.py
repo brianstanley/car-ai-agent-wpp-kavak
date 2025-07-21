@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Script to generate embeddings for car data and save them to the cars table.
 """
@@ -18,6 +17,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from db.session import SessionLocal
 from db.config import Config
+from models.db import CarDB
 
 # Load environment variables
 load_dotenv()
@@ -33,28 +33,28 @@ def validate_environment():
     if not api_key:
         print("❌ Error: OPENAI_API_KEY not found in environment variables")
         sys.exit(1)
-    
+
     database_url = os.getenv("DATABASE_URL")
     if not database_url:
         print("❌ Error: DATABASE_URL not found in environment variables")
         sys.exit(1)
-    
+
     print("✅ Environment variables validated")
 
 def create_description(row: pd.Series) -> str:
     """
     Create a comprehensive description of the car from the row data.
-    
+
     Args:
         row: Pandas Series containing car data
-        
+
     Returns:
         str: Formatted description of the car
     """
     # Handle boolean values for features
     bluetooth = "con bluetooth" if row.get("bluetooth") == "Sí" else "sin bluetooth"
     car_play = "con CarPlay" if row.get("car_play") == "Sí" else "sin CarPlay"
-    
+
     # Build description
     desc_parts = [
         f"{row['make']} {row['model']} {row['year']}",
@@ -64,21 +64,21 @@ def create_description(row: pd.Series) -> str:
         bluetooth,
         car_play
     ]
-    
+
     # Add dimensions if available
     if pd.notna(row.get('largo')) and pd.notna(row.get('ancho')) and pd.notna(row.get('altura')):
         desc_parts.append(f"{row['largo']}m de largo, {row['ancho']}m de ancho, {row['altura']}m de alto")
-    
+
     return ", ".join(desc_parts)
 
 def generate_embedding(text: str, client: OpenAI) -> List[float]:
     """
     Generate embedding for the given text using OpenAI API.
-    
+
     Args:
         text: Text to embed
         client: OpenAI client instance
-        
+
     Returns:
         List[float]: Embedding vector
     """
@@ -110,114 +110,78 @@ def insert_car_to_database(
     session
 ) -> bool:
     """
-    Insert car data with embedding into the database.
-    
-    Args:
-        stock_id: Stock ID of the car
-        km: Kilometers
-        price: Price
-        make: Car make
-        model: Car model
-        year: Year
-        version: Version
-        bluetooth: Bluetooth availability
-        largo: Length
-        ancho: Width
-        altura: Height
-        car_play: CarPlay availability
-        descripcion: Description
-        embedding: Embedding vector
-        session: Database session
-        
-    Returns:
-        bool: True if successful, False otherwise
+    Insert car data with embedding into the database using SQLAlchemy ORM.
     """
     try:
-        # Convert embedding to PostgreSQL vector format
-        embedding_str = f"[{','.join(map(str, embedding))}]"
-        
-        # Insert the car data
-        query = text("""
-            INSERT INTO cars (
-                stock_id, km, price, make, model, year, version, 
-                bluetooth, largo, ancho, altura, car_play, descripcion, embedding
-            ) VALUES (
-                :stock_id, :km, :price, :make, :model, :year, :version,
-                :bluetooth, :largo, :ancho, :altura, :car_play, :descripcion, :embedding
-            )
-        """)
-        
-        session.execute(query, {
-            'stock_id': stock_id,
-            'km': km,
-            'price': price,
-            'make': make,
-            'model': model,
-            'year': year,
-            'version': version,
-            'bluetooth': bluetooth,
-            'largo': largo,
-            'ancho': ancho,
-            'altura': altura,
-            'car_play': car_play,
-            'descripcion': descripcion,
-            'embedding': embedding_str
-        })
-        
+        car = CarDB(
+            stock_id=stock_id,
+            km=km,
+            price=price,
+            make=make,
+            model=model,
+            year=year,
+            version=version,
+            bluetooth=bluetooth,
+            largo=largo,
+            ancho=ancho,
+            altura=altura,
+            car_play=car_play,
+            descripcion=descripcion,
+            embedding=embedding
+        )
+        session.add(car)
         session.commit()
         return True
-        
     except SQLAlchemyError as e:
-        print(f"❌ Database error inserting car {stock_id}: {e}")
+        print(f"Error de base de datos al insertar auto {stock_id}: {e}")
         session.rollback()
         return False
     except Exception as e:
-        print(f"❌ Error inserting car {stock_id}: {e}")
+        print(f"Error al insertar auto {stock_id}: {e}")
         session.rollback()
         return False
 
 def process_csv_data():
-    """Process the CSV file and generate embeddings for all cars."""
-    print("🚗 Starting car embedding generation...")
-    
+    print("Generando embeddings de autos...")
+
     # Validate environment
     validate_environment()
-    
+
     # Check if CSV file exists
     if not os.path.exists(CSV_PATH):
         print(f"❌ Error: CSV file '{CSV_PATH}' not found")
         sys.exit(1)
-    
+
     # Initialize OpenAI client
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    
+
     # Read CSV data
-    print(f"📖 Reading CSV file: {CSV_PATH}")
+    print(f"Leyendo archivo CSV: {CSV_PATH}")
     try:
         df = pd.read_csv(CSV_PATH)
         print(f"✅ Loaded {len(df)} cars from CSV")
     except Exception as e:
         print(f"❌ Error reading CSV file: {e}")
         sys.exit(1)
-    
+
     # Initialize database session
     session = SessionLocal()
-    
+
     try:
         # Process each car
         successful_inserts = 0
         failed_inserts = 0
-        
+
         print("🔄 Processing cars and generating embeddings...")
-        
+
         for index, row in tqdm(df.iterrows(), total=len(df), desc="Processing cars"):
             try:
                 # Create description
                 descripcion = create_description(row)
-                
+
                 # Generate embedding
                 embedding = generate_embedding(descripcion, client)
-                
+
                 # Prepare data for insertion
                 stock_id = str(row['stock_id'])
                 km = int(row['km'])
@@ -231,7 +195,7 @@ def process_csv_data():
                 ancho = float(row['ancho']) if pd.notna(row.get('ancho')) else None
                 altura = float(row['altura']) if pd.notna(row.get('altura')) else None
                 car_play = row.get('car_play') == 'Sí'
-                
+
                 # Insert into database
                 success = insert_car_to_database(
                     stock_id=stock_id,
@@ -250,30 +214,28 @@ def process_csv_data():
                     embedding=embedding,
                     session=session
                 )
-                
+
                 if success:
                     successful_inserts += 1
                 else:
                     failed_inserts += 1
-                    
+
             except Exception as e:
                 print(f"❌ Error processing car {row.get('stock_id', 'unknown')}: {e}")
                 failed_inserts += 1
-        
+
         # Print summary
         print("\n" + "="*50)
         print("📊 PROCESSING SUMMARY")
         print("="*50)
-        print(f"✅ Successful inserts: {successful_inserts}")
-        print(f"❌ Failed inserts: {failed_inserts}")
-        print(f"📈 Total processed: {successful_inserts + failed_inserts}")
-        print(f"📈 Success rate: {(successful_inserts / (successful_inserts + failed_inserts) * 100):.1f}%")
-        
+        print(f"{successful_inserts} autos insertados correctamente.")
+        print(f"{failed_inserts} autos fallidos.")
+        print(f"Total procesados: {successful_inserts + failed_inserts}")
         if successful_inserts > 0:
-            print("\n🎉 Car embedding generation completed successfully!")
+            print("Embeddings generados correctamente.")
         else:
-            print("\n❌ No cars were successfully processed.")
-            
+            print("No se procesaron autos correctamente.")
+
     except Exception as e:
         print(f"❌ Error during processing: {e}")
         sys.exit(1)
@@ -281,10 +243,9 @@ def process_csv_data():
         session.close()
 
 def main():
-    """Main function to run the car embedding generation."""
-    print("🤖 Car Embedding Generator")
+    print("Generador de Embeddings de Autos")
     print("=" * 50)
-    
+
     try:
         process_csv_data()
     except KeyboardInterrupt:
@@ -295,4 +256,4 @@ def main():
         sys.exit(1)
 
 if __name__ == "__main__":
-    main() 
+    main()

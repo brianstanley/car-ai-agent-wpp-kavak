@@ -11,7 +11,6 @@ from prompts.catalog_search import get_catalog_search_normalization_prompt
 
 
 class CarFilters(BaseModel):
-    """Model for car filters."""
     stock_id: Optional[str] = Field(None, description="ID de stock del auto")
     make: Optional[str] = Field(None, description="Marca del auto")
     model: Optional[str] = Field(None, description="Modelo del auto")
@@ -96,30 +95,29 @@ class CatalogSearchTool:
         if not self.client:
             return args
 
-        MARCA_LIST = [
+        brands_list = [
             "Audi", "BMW", "Chevrolet", "Dodge", "Fiat", "Ford", "Honda", "Infiniti", "JAC", "Jeep",
             "KIA", "Land Rover", "Lincoln", "Mazda", "Mercedes Benz", "MG", "Mini", "Nissan", "Peugeot",
             "Renault", "Seat", "Suzuki", "Toyota", "Volkswagen", "Volvo"
         ]
-        marcas_str = ", ".join(MARCA_LIST)
+        brands_str = ", ".join(brands_list)
 
-        PREF_EXTRACTION_PROMPT = get_catalog_search_normalization_prompt(marcas_str)
+        extraction_prompt = get_catalog_search_normalization_prompt(brands_str)
 
         try:
             normalize_response = self.client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
-                    {"role": "system", "content": PREF_EXTRACTION_PROMPT},
+                    {"role": "system", "content": extraction_prompt},
                     {"role": "user", "content": json.dumps(args)}
                 ],
                 temperature=0,
                 response_format={"type": "json_object"}
             )
             normalized_content = normalize_response.choices[0].message.content
-            print(f"🔧 Filtros normalizados: {normalized_content}")
             return json.loads(normalized_content) if normalized_content else args
         except Exception as e:
-            print(f"❌ Error normalizando filtros: {e}")
+            print(f"Error normalizando filtros: {e}")
             return args
 
     def _convert_tool_args_to_filters(self, args: dict) -> dict:
@@ -280,7 +278,7 @@ class CatalogSearchTool:
                 session.close()
 
         except Exception as e:
-            print(f"❌ Error in regular car search: {e}")
+            print(f"Error in regular car search: {e}")
             return []
 
     def _format_car_search_results(self, cars: List[Dict[str, Any]]) -> str:
@@ -317,8 +315,6 @@ class CatalogSearchTool:
             if 'similarity_score' in car:
                 result_lines.append(f"   Relevancia: {car['similarity_score']:.4f}")
 
-        print(f"🔍 Resultados formateados: {result_lines}")
-
         return "\n".join(result_lines)
 
     def execute(self, args: Dict[str, Any], limit: 5) -> str:
@@ -334,7 +330,7 @@ class CatalogSearchTool:
         """
         try:
 
-            # Normalize filters using LLM
+            # Normalize filters using specialized LLM
             normalized_args = self._normalize_filters(args)
 
             # Convert normalized args to search filters
@@ -345,7 +341,6 @@ class CatalogSearchTool:
             else:
                 search_filters = self._convert_tool_args_to_filters(normalized_args)
 
-            # Perform regular search
             search_results = self._search_cars_regular(
                 filters=search_filters,
                 limit=limit
@@ -357,4 +352,4 @@ class CatalogSearchTool:
             return formatted_results
 
         except Exception as e:
-            return f"❌ Error en búsqueda de catálogo: {e}"
+            return f"Error en búsqueda de catálogo: {e}"

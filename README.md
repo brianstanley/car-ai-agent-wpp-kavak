@@ -20,7 +20,6 @@ Copia el archivo de ejemplo y configura las credenciales presentadas:
 
 ```bash
 cp env.example .env
-# Edita .env con tus credenciales reales si es necesario
 ```
 
 ### 3. Buildear y levantar los servicios (DB y API)
@@ -68,11 +67,6 @@ docker-compose exec api python setup.py --recreate
 Esto eliminará el contenedor y el volumen de la base de datos, y los creará nuevamente desde cero.
 
 ## Comandos útiles
-
-- Verificar la conexión a la base de datos:
-  ```bash
-  docker-compose exec api python -m scripts.check_db
-  ```
 - Ejecutar seeders manualmente:
   ```bash
   docker-compose exec api python seeders.py
@@ -80,10 +74,26 @@ Esto eliminará el contenedor y el volumen de la base de datos, y los creará nu
 
 ## Soporte
 
-Si tienes problemas:
+Si tenes problemas:
 
 1. Verifica que Docker y Docker Compose estén instalados y ejecutándose.
 2. Revisa los logs con `docker-compose logs`.
 3. Asegúrate de que el archivo `.env` esté correctamente configurado. 
 4. Revisa estar accediendo mediante el versionado v1 a la api.
 5. Verifica haber corrido los scripts de migración y generación de embeddings.
+
+## Modo Interactivo: Ejecutar el Chat
+
+Para poder interactuar con el agente conversacional de Kavak ya sea para desarrollo o prueba se puede ejecutar de manera local usando el script `chat.py`. 
+
+### ¿Cómo ejecutarlo?
+
+Asegúrate de tener las dependencias instaladas y las variables de entorno configuradas. Luego ejecuta:
+
+```bash
+python chat.py
+```
+
+Vas a ver un prompt donde puedes escribir mensajes y recibir respuestas del agente. Usa `/quit` o `/exit` para salir del chat.
+
+---
