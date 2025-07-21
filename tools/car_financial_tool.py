@@ -6,6 +6,13 @@ Tool for calculating car financing plans.
 from typing import Dict, Any, Optional
 from enum import Enum
 
+class CarFinancialError(str, Enum):
+    MISSING_PARAMS = "Error: Todos los parámetros son requeridos (precio del auto, enganche, años de financiamiento)"
+    INVALID_VALUES = "Error: Los valores deben ser números válidos"
+    INVALID_PRICE_OR_DOWN = "Error: El precio del auto debe ser mayor a 0 y el enganche no puede ser negativo"
+    DOWN_PAYMENT_TOO_HIGH = "Error: El enganche no puede ser mayor o igual al precio del auto"
+    INVALID_YEARS = "Error: El plazo de financiamiento debe estar entre {min_years} y {max_years} años"
+
 class CarFinancialTool:
     def __init__(self):
         """Initialize the tool."""

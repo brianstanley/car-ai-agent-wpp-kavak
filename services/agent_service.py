@@ -81,7 +81,7 @@ class AgentService:
         """Validate required environment variables."""
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
-            print("❌ Error: OPENAI_API_KEY not found in environment variables")
+            print("Error: OPENAI_API_KEY not found in environment variables")
             sys.exit(1)
 
     def _initialize_dependencies(
@@ -170,17 +170,17 @@ class AgentService:
             str: The response from the agent.
         """
         try:
-            print(f"💬 Chat Session ID: {chat_session_id}")
+            print(f"Chat Session ID: {chat_session_id}")
 
             # 1) Prepare memory and conversation IDs
             memory_id = self._validate_session_exists(chat_session_id)
 
             # 2) Build augmented query using PromptBuilder
-            print("\n2️⃣ Building prompt...")
+            print("\nBuilding prompt...")
             messages = self._build_prompt_messages(query, memory_id)
 
             # LOG DEL PROMPT QUE SE VA A ENVIAR AL LLM
-            print("\n📝 PROMPT QUE SE ENVÍA AL LLM:")
+            print("\nPROMPT QUE SE ENVÍA AL LLM:")
             for i, msg in enumerate(messages):
                 print(f"[{i}] {msg['role'].upper()}\n{msg['content']}\n{'-'*40}")
 
@@ -188,7 +188,7 @@ class AgentService:
             self._record_user_query(query, chat_session_id)
 
             # 6) Get response from OpenAI
-            print("\n6️⃣ Getting response from OpenAI...")
+            print("\nGetting response from OpenAI...")
             # response = self._get_openai_response(messages)
             response = self._execute_main_loop(
                 messages=messages,
@@ -205,10 +205,10 @@ class AgentService:
             # 8) Check if conversation should be summarized
             self._check_and_summarize_conversation(chat_session_id)
 
-            return response or "❌ No response received from agent"
+            return response or "No response received from agent"
 
         except Exception as e:
-            error_msg = f"❌ Error running MemAgent: {e}"
+            error_msg = f"Error running MemAgent: {e}"
             print(error_msg)
             return error_msg
 
@@ -233,20 +233,20 @@ class AgentService:
             if self.session_service:
                 session = self.session_service.get_session_by_id(session_uuid)
                 if session:
-                    print(f"   ✅ Session validated: {session.id}")
+                    print(f"   Session validated: {session.id}")
                     return chat_session_id  # Use as memory_id
                 else:
                     raise ValueError(f"Session {chat_session_id} does not exist")
             else:
                 # Fallback if session_service not available
-                print(f"   ⚠️ SessionService not available, skipping validation")
+                print(f"   SessionService not available, skipping validation")
                 return chat_session_id
 
         except ValueError as e:
-            print(f"   ❌ Session validation error: {e}")
+            print(f"   Session validation error: {e}")
             raise
         except Exception as e:
-            print(f"   ❌ Error validating session: {e}")
+            print(f"   Error validating session: {e}")
             raise
 
     def _record_user_query(self, query: str, chat_session_id: str) -> None:
@@ -260,7 +260,7 @@ class AgentService:
         try:
             self.memory_service.store_message(UUID(chat_session_id), "user", query)
         except Exception as e:
-            print(f"   ⚠️ Warning: Could not record user query: {e}")
+            print(f"   Warning: Could not record user query: {e}")
 
     def _record_assistant_response(self, response: str, chat_session_id: str) -> None:
         """
@@ -273,7 +273,7 @@ class AgentService:
         try:
             self.memory_service.store_message(UUID(chat_session_id), "assistant", response)
         except Exception as e:
-            print(f"   ⚠️ Warning: Could not record assistant response: {e}")
+            print(f"   Warning: Could not record assistant response: {e}")
 
     def _check_and_summarize_conversation(self, chat_session_id: str) -> None:
         """
@@ -287,20 +287,20 @@ class AgentService:
 
             # Check if should summarize based on sliding window
             if self.memory_service.should_summarize_conversation(session_uuid):
-                print(f"   📝 Triggering conversation summarization for session: {chat_session_id}")
+                print(f"   Triggering conversation summarization for session: {chat_session_id}")
 
                 # Perform summarization
                 success = self.memory_service.summarize_conversation(session_uuid)
 
                 if success:
-                    print(f"   ✅ Conversation summarized successfully")
+                    print(f"   Conversation summarized successfully")
                 else:
-                    print(f"   ❌ Failed to summarize conversation")
+                    print(f"   Failed to summarize conversation")
             else:
-                print(f"   ℹ️ No summarization needed for session: {chat_session_id}")
+                print(f"   No summarization needed for session: {chat_session_id}")
 
         except Exception as e:
-            print(f"   ⚠️ Warning: Could not check/summarize conversation: {e}")
+            print(f"   Warning: Could not check/summarize conversation: {e}")
 
     def _build_prompt_messages(self, query: str, memory_id: str) -> List[Dict[str, str]]:
         """
@@ -332,7 +332,7 @@ class AgentService:
 
     def _build_system_message(self) -> Dict[str, str]:
         """Build the system message with persona, instruction, user name, and preferences."""
-        print("   📝 Step 1: Building system message...")
+        print("   Step 1: Building system message...")
 
         # Build base system content
         system_content = self._build_base_system_content()
@@ -355,7 +355,7 @@ class AgentService:
 
     def _add_user_name_to_system(self, system_content: str) -> str:
         """Add user name section to system content."""
-        print("   📝 Step 1.5: Adding user name...")
+        print("   Step 1.5: Adding user name...")
         user_name_section = self._build_user_name_section()
         if user_name_section:
             system_content += f"\n\n{user_name_section}"
@@ -363,7 +363,7 @@ class AgentService:
 
     def _add_user_preferences_to_system(self, system_content: str) -> str:
         """Add user preferences section to system content."""
-        print("   📝 Step 1.6: Adding user preferences...")
+        print("   Step 1.6: Adding user preferences...")
         preferences_section = self._build_user_preferences_section()
         if preferences_section:
             system_content += f"\n\n{preferences_section}"
@@ -389,21 +389,21 @@ class AgentService:
                     messages.append({"role": "system", "content": content})
                     summary_added = True
                     history_count += 1
-                    print(f"   📝 Added conversation summary")
+                    print(f"   Added conversation summary")
 
                 # Add user and assistant messages
                 elif role in ['user', 'assistant']:
                     messages.append({"role": role, "content": content})
                     history_count += 1
 
-            print(f"   ✅ Added {history_count} history messages (including summary if available)")
+            print(f"   Added {history_count} history messages (including summary if available)")
 
         except Exception as e:
-            print(f"   ⚠️ Warning: Could not add conversation history: {e}")
+            print(f"   Warning: Could not add conversation history: {e}")
 
             # Fallback to original method if optimized method fails
             try:
-                print(f"   🔄 Falling back to original method...")
+                print(f"   Falling back to original method...")
                 recent_messages = self.memory_service.get_last_n_messages(
                     UUID(memory_id),
                     n=AgentConfig.MAX_HISTORY_MESSAGES
@@ -417,10 +417,10 @@ class AgentService:
                         messages.append({"role": role, "content": content})
                         history_count += 1
 
-                print(f"   ✅ Added {history_count} history messages (fallback)")
+                print(f"   Added {history_count} history messages (fallback)")
 
             except Exception as fallback_e:
-                print(f"   ❌ Fallback also failed: {fallback_e}")
+                print(f"   Fallback also failed: {fallback_e}")
 
     def _log_prompt_messages(self, messages: List[Dict[str, str]]) -> None:
         """Log the final prompt messages for debugging."""
@@ -453,12 +453,12 @@ class AgentService:
 
             response = completion.choices[0].message.content
             if response is None:
-                return "❌ No response received from OpenAI"
+                return "No response received from OpenAI"
 
             return response
 
         except Exception as e:
-            return f"❌ Error getting response from OpenAI: {e}"
+            return f"Error getting response from OpenAI: {e}"
 
     def _build_user_preferences_section(self) -> str:
         """
@@ -530,7 +530,7 @@ class AgentService:
 
         preferences_text += "=" * AgentConfig.PREFERENCES_SECTION_WIDTH + "\n"
 
-        print(f"   ✅ Added user preferences to system message")
+        print(f"   Added user preferences to system message")
         return preferences_text
 
     def _build_user_name_section(self) -> str:
@@ -563,7 +563,7 @@ class AgentService:
         user_name_text += f"Nombre: {user_name}\n"
         user_name_text += "=" * AgentConfig.USER_NAME_SECTION_WIDTH + "\n"
 
-        print(f"   ✅ Added user name '{user_name}' to system message")
+        print(f"   Added user name '{user_name}' to system message")
         return user_name_text
 
     def _merge_preferences(self, user_id, new_preferences: dict):
@@ -573,12 +573,12 @@ class AgentService:
             user_id (str): The ID of the user whose preferences are being updated.
             new_preferences (dict): The new preferences to merge into the user's existing preferences.
         """
-        print(f"🔄 Updating preferences for user {user_id}...")
+        print(f"Updating preferences for user {user_id}...")
         try:
             if self.user_service:
                 self.user_service.update_preferences(user_id, new_preferences)
         except Exception as e:
-            print(f"❌ Error al actualizar preferencias: {e}")
+            print(f"Error al actualizar preferencias: {e}")
 
     def _execute_main_loop(self, messages, query, memory_id, conversation_id, user_id: str):
         """

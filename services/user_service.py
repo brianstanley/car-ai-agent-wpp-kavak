@@ -13,6 +13,19 @@ from db.config import Config
 from db.session import SessionLocal
 from models.db import UserDB
 from models.schemas.user import User
+from enum import Enum
+
+
+class UserServiceError(str, Enum):
+    USER_NOT_FOUND = "User not found with id: {id}"
+    ERROR_UPDATE_NAME = "Error updating user name: {error}"
+    ERROR_UPDATE_PREFS = "Error updating preferences: {error}"
+    ERROR_GET_BY_PHONE = "Error in get_user_by_phone: {error}"
+    ERROR_GET_ALL = "Error in get_all_users: {error}"
+    ERROR_GET_BY_ID = "Error in get_user_by_id: {error}"
+    INVALID_UUID = "Invalid UUID format: {error}"
+    ERROR_UPDATE_USER = "Error updating user: {error}"
+    ERROR_DELETE_USER = "Error deleting user: {error}"
 
 
 class UserService:
@@ -50,23 +63,16 @@ class UserService:
             with SessionLocal() as session:
                 db_user = session.scalar(select(UserDB).where(UserDB.id == id))
                 if not db_user:
-                    print(f"❌ User not found with id: {id}")
+                    print(UserServiceError.USER_NOT_FOUND.value.format(id=id))
                     return None
-
-                print(f"DEBUG: Updating user name for user {id}")
-                print(f"DEBUG: Current name: {db_user.name}")
-                print(f"📝DEBUG: New name to set: {name}")
 
                 db_user.name = name
                 session.commit()
                 session.refresh(db_user)
 
-                print(f"DEBUG: User name updated successfully")
-                print(f"DEBUG: Final name: {db_user.name}")
-
                 return self._to_schema(db_user)
         except SQLAlchemyError as e:
-            print(f"❌ Error al actualizar el nombre del usuario: {e}")
+            print(UserServiceError.ERROR_UPDATE_NAME.value.format(error=e))
             raise
 
     def update_preferences(self, id: str, preferences: dict) -> Optional[User]:
@@ -74,18 +80,13 @@ class UserService:
             with SessionLocal() as session:
                 db_user = session.scalar(select(UserDB).where(UserDB.id == id))
                 if not db_user:
-                    print(f"❌ User not found with id: {id}")
+                    print(UserServiceError.USER_NOT_FOUND.value.format(id=id))
                     return None
-
-                print(f"DEBUG: Updating preferences for user {id}")
-                print(f"DEBUG: Current preferences: {db_user.preferences}")
-                print(f"📝DEBUG: New preferences to add: {preferences}")
 
                 current = db_user.preferences or {}
                 if not isinstance(current, dict):
                     current = {}
                 current.update(preferences)
-                print(f"DEBUG: Merged preferences: {current}")
                 db_user.preferences = current
                 # workaround for sqlalchemy not detecting changes in dict
                 from sqlalchemy.orm.attributes import flag_modified
@@ -94,12 +95,9 @@ class UserService:
                 session.commit()
                 session.refresh(db_user)
 
-                print(f"DEBUG: Preferences updated successfully")
-                print(f"DEBUG: Final preferences: {db_user.preferences}")
-
                 return self._to_schema(db_user)
         except SQLAlchemyError as e:
-            print(f"❌ Error al actualizar preferencias: {e}")
+            print(UserServiceError.ERROR_UPDATE_PREFS.value.format(error=e))
             raise
 
     def get_user_by_phone(self, phone_number: str) -> Optional[User]:
@@ -108,7 +106,7 @@ class UserService:
                 db_user = session.scalar(select(UserDB).where(UserDB.phone_number == phone_number))
                 return self._to_schema(db_user) if db_user else None
         except SQLAlchemyError as e:
-            print(f"❌ Error in get_user_by_phone: {e}")
+            print(UserServiceError.ERROR_GET_BY_PHONE.value.format(error=e))
             raise
 
     def get_all_users(self) -> list[User]:
@@ -118,7 +116,7 @@ class UserService:
                 db_users = session.scalars(select(UserDB)).all()
                 return [self._to_schema(user) for user in db_users]
         except SQLAlchemyError as e:
-            print(f"❌ Error in get_all_users: {e}")
+            print(UserServiceError.ERROR_GET_ALL.value.format(error=e))
             raise
 
     def get_user_by_id(self, user_id: str) -> Optional[User]:
@@ -129,10 +127,10 @@ class UserService:
                 db_user = session.scalar(select(UserDB).where(UserDB.id == UUID(user_id)))
                 return self._to_schema(db_user) if db_user else None
         except SQLAlchemyError as e:
-            print(f"❌ Error in get_user_by_id: {e}")
+            print(UserServiceError.ERROR_GET_BY_ID.value.format(error=e))
             raise
         except ValueError as e:
-            print(f"❌ Invalid UUID format: {e}")
+            print(UserServiceError.INVALID_UUID.value.format(error=e))
             raise
 
     def update_user(self, user_id: str, name: Optional[str] = None, preferences: Optional[dict] = None) -> Optional[User]:
@@ -142,19 +140,13 @@ class UserService:
             with SessionLocal() as session:
                 db_user = session.scalar(select(UserDB).where(UserDB.id == UUID(user_id)))
                 if not db_user:
-                    print(f"❌ User not found with id: {user_id}")
+                    print(UserServiceError.USER_NOT_FOUND.value.format(id=user_id))
                     return None
-
-                print(f"DEBUG: Updating user {user_id}")
-                
                 # Update name if provided
                 if name is not None:
-                    print(f"DEBUG: Updating name from '{db_user.name}' to '{name}'")
                     db_user.name = name
-
                 # Update preferences if provided
                 if preferences is not None:
-                    print(f"DEBUG: Updating preferences from {db_user.preferences} to {preferences}")
                     current = db_user.preferences or {}
                     if not isinstance(current, dict):
                         current = {}
@@ -163,17 +155,14 @@ class UserService:
                     # Workaround for sqlalchemy not detecting changes in dict
                     from sqlalchemy.orm.attributes import flag_modified
                     flag_modified(db_user, "preferences")
-
                 session.commit()
                 session.refresh(db_user)
-
-                print(f"DEBUG: User updated successfully")
                 return self._to_schema(db_user)
         except SQLAlchemyError as e:
-            print(f"❌ Error updating user: {e}")
+            print(UserServiceError.ERROR_UPDATE_USER.value.format(error=e))
             raise
         except ValueError as e:
-            print(f"❌ Invalid UUID format: {e}")
+            print(UserServiceError.INVALID_UUID.value.format(error=e))
             raise
 
     def delete_user(self, user_id: str) -> bool:
@@ -183,19 +172,15 @@ class UserService:
             with SessionLocal() as session:
                 db_user = session.scalar(select(UserDB).where(UserDB.id == UUID(user_id)))
                 if not db_user:
-                    print(f"❌ User not found with id: {user_id}")
+                    print(UserServiceError.USER_NOT_FOUND.value.format(id=user_id))
                     return False
-
-                print(f"DEBUG: Deleting user {user_id}")
                 session.delete(db_user)
                 session.commit()
-
-                print(f"DEBUG: User deleted successfully")
                 return True
         except SQLAlchemyError as e:
-            print(f"❌ Error deleting user: {e}")
+            print(UserServiceError.ERROR_DELETE_USER.value.format(error=e))
             raise
         except ValueError as e:
-            print(f"❌ Invalid UUID format: {e}")
+            print(UserServiceError.INVALID_UUID.value.format(error=e))
             raise
 
