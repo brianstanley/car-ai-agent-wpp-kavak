@@ -5,10 +5,18 @@ Tool for semantic search of Kavak information.
 
 from typing import Dict, Any, List, Optional
 from openai import OpenAI
+from enum import Enum
 
 from services.kavak_info_service import KavakInfoService
 from prompts.conversation_summary import get_kavak_info_summary_prompt, get_kavak_info_summary_system_prompt
 
+
+MAX_RESULTS_DEFAULT = 3
+class KavakInfoSearchError(str, Enum):
+    MISSING_QUERY = "Error: Se requiere una consulta para buscar información de Kavak."
+    NOT_FOUND = "No encontré información específica sobre '{query}'. ¿Podrías reformular tu pregunta o consultar sobre otro tema relacionado con Kavak?"
+    SUMMARIZATION = "Error en summarización: {error}"
+    SEARCH = "Error en búsqueda de información de Kavak: {error}"
 
 class KavakInfoSearchTool:
     def __init__(self, openai_client: Optional[OpenAI] = None):
@@ -96,7 +104,7 @@ class KavakInfoSearchTool:
             return response.choices[0].message.content.strip()
 
         except Exception as e:
-            print(f"Error en summarización: {e}")
+            print(KavakInfoSearchError.SUMMARIZATION.value.format(error=e))
             # Fallback: show query and up to two result snippets
             fallback = [res.text for res in results[:2]]
             items = "\n".join(f"- {text}" for text in fallback)
@@ -114,24 +122,22 @@ class KavakInfoSearchTool:
         """
         try:
             query = args.get('query', '')
-            max_results = args.get('max_results', 3)
+            max_results = args.get('max_results', MAX_RESULTS_DEFAULT)
 
             if not query:
-                return "Error: Se requiere una consulta para buscar información de Kavak."
+                return KavakInfoSearchError.MISSING_QUERY.value
 
             print(f"TOOL CALL- Buscando información de Kavak: '{query}'")
             results = self.kavak_info_service.search_similar(query, limit=max_results) # use semantic search:)
 
             if not results:
-                print(f"No encontré información específica sobre '{query}'.")
-                return f"No encontré información específica sobre '{query}'. ¿Podrías reformular tu pregunta o consultar sobre otro tema relacionado con Kavak?"
+                print(KavakInfoSearchError.NOT_FOUND.value.format(query=query))
+                return KavakInfoSearchError.NOT_FOUND.value.format(query=query)
 
             summarized_response = self._summarize_results(results, query, model="gpt-4o-mini")
-            print(f"✅ Encontrados {len(results)} resultados para '{query}'")
-            print(f"🔍 luego de sumarizar los resultados: {summarized_response}")
             return summarized_response
 
         except Exception as e:
-            error_msg = f"Error en búsqueda de información de Kavak: {e}"
+            error_msg = KavakInfoSearchError.SEARCH.value.format(error=e)
             print(error_msg)
             return error_msg

@@ -4,6 +4,7 @@ Tool for calculating car financing plans.
 """
 
 from typing import Dict, Any, Optional
+from enum import Enum
 
 class CarFinancialTool:
     def __init__(self):
@@ -90,7 +91,7 @@ class CarFinancialTool:
             financing_years = args.get("financing_years")
 
             if not all([car_price is not None, down_payment is not None, financing_years is not None]):
-                return "Error: Todos los parámetros son requeridos (precio del auto, enganche, años de financiamiento)"
+                return CarFinancialError.MISSING_PARAMS.value
 
             # Type conversion and validation
             try:
@@ -98,16 +99,16 @@ class CarFinancialTool:
                 down_payment = float(down_payment)  # type: ignore
                 financing_years = int(financing_years)  # type: ignore
             except (ValueError, TypeError):
-                return "Error: Los valores deben ser números válidos"
+                return CarFinancialError.INVALID_VALUES.value
 
             if car_price <= 0 or down_payment < 0:
-                return "Error: El precio del auto debe ser mayor a 0 y el enganche no puede ser negativo"
+                return CarFinancialError.INVALID_PRICE_OR_DOWN.value
 
             if down_payment >= car_price:
-                return "Error: El enganche no puede ser mayor o igual al precio del auto"
+                return CarFinancialError.DOWN_PAYMENT_TOO_HIGH.value
 
             if financing_years < self.min_years or financing_years > self.max_years:
-                return f"Error: El plazo de financiamiento debe estar entre {self.min_years} y {self.max_years} años"
+                return CarFinancialError.INVALID_YEARS.value.format(min_years=self.min_years, max_years=self.max_years)
 
             # Calculate financing details
             loan_amount = car_price - down_payment
@@ -142,4 +143,4 @@ class CarFinancialTool:
             return response
 
         except Exception as e:
-            return f"❌ Error al calcular el financiamiento: {e}"
+            return f"Error al calcular el financiamiento: {e}"

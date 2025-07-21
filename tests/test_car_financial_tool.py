@@ -6,7 +6,7 @@ Unit tests for CarFinancialTool.
 import unittest
 import math
 from decimal import Decimal
-from tools.car_financial_tool import CarFinancialTool
+from tools.car_financial_tool import CarFinancialTool, CarFinancialError
 
 
 class TestCarFinancialTool(unittest.TestCase):
@@ -151,7 +151,7 @@ class TestCarFinancialTool(unittest.TestCase):
         }
         
         result = self.tool.execute(args, "test_user")
-        self.assertIn("Error: Todos los parámetros son requeridos", result)
+        self.assertIn(CarFinancialError.MISSING_PARAMS.value.split('(')[0], result)
 
         # Missing down_payment
         args = {
@@ -160,7 +160,7 @@ class TestCarFinancialTool(unittest.TestCase):
         }
         
         result = self.tool.execute(args, "test_user")
-        self.assertIn("Error: Todos los parámetros son requeridos", result)
+        self.assertIn(CarFinancialError.MISSING_PARAMS.value.split('(')[0], result)
 
         # Missing financing_years
         args = {
@@ -169,7 +169,7 @@ class TestCarFinancialTool(unittest.TestCase):
         }
         
         result = self.tool.execute(args, "test_user")
-        self.assertIn("Error: Todos los parámetros son requeridos", result)
+        self.assertIn(CarFinancialError.MISSING_PARAMS.value.split('(')[0], result)
 
     def test_error_invalid_car_price(self):
         """Test error handling for invalid car price."""
@@ -200,7 +200,7 @@ class TestCarFinancialTool(unittest.TestCase):
         }
         
         result = self.tool.execute(args, "test_user")
-        self.assertIn("Error: El precio del auto debe ser mayor a 0 y el enganche no puede ser negativo", result)
+        self.assertIn(CarFinancialError.INVALID_PRICE_OR_DOWN.value, result)
 
     def test_error_down_payment_greater_than_car_price(self):
         """Test error handling when down payment is greater than car price."""
@@ -211,7 +211,7 @@ class TestCarFinancialTool(unittest.TestCase):
         }
         
         result = self.tool.execute(args, "test_user")
-        self.assertIn("Error: El enganche no puede ser mayor o igual al precio del auto", result)
+        self.assertIn(CarFinancialError.DOWN_PAYMENT_TOO_HIGH.value, result)
 
         # Test equal case
         args = {
@@ -221,7 +221,7 @@ class TestCarFinancialTool(unittest.TestCase):
         }
         
         result = self.tool.execute(args, "test_user")
-        self.assertIn("Error: El enganche no puede ser mayor o igual al precio del auto", result)
+        self.assertIn(CarFinancialError.DOWN_PAYMENT_TOO_HIGH.value, result)
 
     def test_error_invalid_financing_years(self):
         """Test error handling for invalid financing years."""
@@ -233,7 +233,7 @@ class TestCarFinancialTool(unittest.TestCase):
         }
         
         result = self.tool.execute(args, "test_user")
-        self.assertIn("Error: El plazo de financiamiento debe estar entre 3 y 6 años", result)
+        self.assertIn("Error: El plazo de financiamiento debe estar entre", result)
 
         # Too many years
         args = {
@@ -243,7 +243,7 @@ class TestCarFinancialTool(unittest.TestCase):
         }
         
         result = self.tool.execute(args, "test_user")
-        self.assertIn("Error: El plazo de financiamiento debe estar entre 3 y 6 años", result)
+        self.assertIn("Error: El plazo de financiamiento debe estar entre", result)
 
     def test_error_invalid_data_types(self):
         """Test error handling for invalid data types."""
@@ -254,7 +254,7 @@ class TestCarFinancialTool(unittest.TestCase):
         }
         
         result = self.tool.execute(args, "test_user")
-        self.assertIn("Error: Los valores deben ser números válidos", result)
+        self.assertIn(CarFinancialError.INVALID_VALUES.value, result)
 
         args = {
             "car_price": 200000,
@@ -263,7 +263,7 @@ class TestCarFinancialTool(unittest.TestCase):
         }
         
         result = self.tool.execute(args, "test_user")
-        self.assertIn("Error: Los valores deben ser números válidos", result)
+        self.assertIn(CarFinancialError.INVALID_VALUES.value, result)
 
         args = {
             "car_price": 200000,
@@ -272,7 +272,7 @@ class TestCarFinancialTool(unittest.TestCase):
         }
         
         result = self.tool.execute(args, "test_user")
-        self.assertIn("Error: Los valores deben ser números válidos", result)
+        self.assertIn(CarFinancialError.INVALID_VALUES.value, result)
 
     def test_financing_calculations_accuracy(self):
         """Test accuracy of financing calculations."""

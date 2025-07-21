@@ -82,7 +82,7 @@ class CatalogSearchTool:
             }
         }
 
-    def _normalize_filters(self, args: Dict[str, Any]) -> Dict[str, Any]:
+    def _normalize_filters(self, args: Dict[str, Any], model: str) -> Dict[str, Any]:
         """
         Normalize filters using LLM.
 
@@ -106,7 +106,7 @@ class CatalogSearchTool:
 
         try:
             normalize_response = self.client.chat.completions.create(
-                model="gpt-4o-mini",
+                model=model,
                 messages=[
                     {"role": "system", "content": extraction_prompt},
                     {"role": "user", "content": json.dumps(args)}
@@ -331,7 +331,7 @@ class CatalogSearchTool:
         try:
 
             # Normalize filters using specialized LLM
-            normalized_args = self._normalize_filters(args)
+            normalized_args = self._normalize_filters(args, model="gpt-4o-mini")
 
             # Convert normalized args to search filters
             if normalized_args is None:
