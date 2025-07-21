@@ -1,5 +1,7 @@
 # Proyecto Kavak WhatsApp Bot
 
+![CI](https://github.com/brianstanley/car-ai-agent-wpp-kavak/actions/workflows/ci.yml/badge.svg)
+
 ## Requisitos
 
 - Docker

@@ -146,7 +146,6 @@ class DatabaseSeeder:
                     existing_user = cursor.fetchone()
 
                     if existing_user:
-                        print(f"✅ Found existing user with phone '1111' and ID {existing_user['id']}")
                         return existing_user
                     else:
                         # Create new user with the fixed ID

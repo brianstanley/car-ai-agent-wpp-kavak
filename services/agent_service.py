@@ -212,6 +212,36 @@ class AgentService:
             print(error_msg)
             return error_msg
 
+    def evaluate(self, user_query: str, chat_session_id: str):
+        """
+        Evalúa la respuesta del agente, devolviendo los elementos estructurados para el meta-agente evaluador.
+        """
+        memory_id = self._validate_session_exists(chat_session_id)
+        messages = self._build_prompt_messages(user_query, memory_id)
+        tool_metas = self._get_tool_definitions()
+        # Solo hacemos una llamada, no el main loop
+        response = self._make_openai_call(messages, tool_metas)
+        choice = response.choices[0]
+        tool_calls = getattr(choice.message, "tool_calls", [])
+        if tool_calls is None:
+            tool_calls = []
+        agent_response = choice.message.content if choice.message.content else ""
+        # El specialized_prompt es el system message
+        specialized_prompt = messages[0]["content"] if messages and messages[0]["role"] == "system" else ""
+        # El evaluation_trigger_prompt es el user_query
+        evaluation_trigger_prompt = user_query
+        # tools_invoked: lista de nombres de tools invocadas
+        tools_invoked = []
+        for tc in tool_calls:
+            if hasattr(tc.function, 'name'):
+                tools_invoked.append(tc.function.name)
+        return {
+            "specialized_prompt": specialized_prompt,
+            "evaluation_trigger_prompt": evaluation_trigger_prompt,
+            "agent_response": agent_response,
+            "tools_invoked": tools_invoked
+        }
+
     def _validate_session_exists(self, chat_session_id: str) -> str:
         """
         Validate that the session exists and return memory_id.
@@ -389,14 +419,12 @@ class AgentService:
                     messages.append({"role": "system", "content": content})
                     summary_added = True
                     history_count += 1
-                    print(f"   Added conversation summary")
 
                 # Add user and assistant messages
                 elif role in ['user', 'assistant']:
                     messages.append({"role": role, "content": content})
                     history_count += 1
 
-            print(f"   Added {history_count} history messages (including summary if available)")
 
         except Exception as e:
             print(f"   Warning: Could not add conversation history: {e}")
@@ -417,7 +445,6 @@ class AgentService:
                         messages.append({"role": role, "content": content})
                         history_count += 1
 
-                print(f"   Added {history_count} history messages (fallback)")
 
             except Exception as fallback_e:
                 print(f"   Fallback also failed: {fallback_e}")

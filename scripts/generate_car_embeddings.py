@@ -9,14 +9,10 @@ from typing import List, Dict, Any
 from tqdm import tqdm
 from dotenv import load_dotenv
 from openai import OpenAI
-from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
-
-# Add the parent directory to the path to import our modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from db.session import SessionLocal
-from db.config import Config
 from models.db import CarDB
 
 # Load environment variables
