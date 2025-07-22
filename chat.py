@@ -17,6 +17,7 @@ from services.chat_service import ChatService
 from services.memory_service import MemoryService
 from services.agent_service import AgentService
 from openai import OpenAI
+from services.llm_openai_adapter import OpenAIClientAdapter
 
 # Cargar variables de entorno
 load_dotenv()
@@ -34,10 +35,10 @@ def main():
     print("=" * 60)
 
     # Inicializar servicios y dependencias
+    llm_client = OpenAIClientAdapter()
     user_service = UserService()
     chat_service = ChatService()
-    memory_service = MemoryService()
-    openai_client = OpenAI()
+    memory_service = MemoryService(llm_client=llm_client)
     prompt_builder = PromptBuilder()
     # Si tienes un UserManager personalizado, instáncialo aquí
 
@@ -59,7 +60,7 @@ def main():
         model="gpt-4o",
         memory_agent_i=memory_agent_id,
         user=user,
-        openai_client=openai_client,
+        llm_client=llm_client,  # Cambiado aquí
         memory_service=memory_service,
         chat_service=chat_service,
         user_service=user_service,

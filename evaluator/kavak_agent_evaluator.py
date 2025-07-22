@@ -6,14 +6,14 @@ from services.user_service import UserService
 from services.chat_service import ChatService
 from services.memory_service import MemoryService
 from services.prompt_builder import PromptBuilder
-from openai import OpenAI
 from evaluator.evaluator_agent import EvaluatorAgent
+from services.llm_openai_adapter import OpenAIClientAdapter
 
 if __name__ == "__main__":
+    llm_client = OpenAIClientAdapter()
     user_service = UserService()
     chat_service = ChatService()
-    memory_service = MemoryService()
-    openai_client = OpenAI()
+    memory_service = MemoryService(llm_client=llm_client)
     prompt_builder = PromptBuilder()
 
     user = user_service.get_or_create_user("1111")
@@ -29,7 +29,7 @@ if __name__ == "__main__":
         model="gpt-4",
         memory_agent_i=memory_agent_id,
         user=user,
-        openai_client=openai_client,
+        llm_client=llm_client,
         memory_service=memory_service,
         chat_service=chat_service,
         user_service=user_service,

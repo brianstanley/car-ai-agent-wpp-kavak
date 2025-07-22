@@ -10,13 +10,13 @@ from typing import List, Optional, Dict, Any
 from uuid import UUID
 from sqlalchemy import select, func, case
 from sqlalchemy.exc import SQLAlchemyError
-from openai import OpenAI
 from enum import Enum
 
 from models.db.conversation_memory import ConversationMemoryDB
 from models.db.summary import SummaryDB
 from db.session import SessionLocal
 from prompts.prompt_manager import prompt_manager
+from services.llm_protocol import LLMClientProtocol
 
 # Configuration constants
 class MemorySummaryConfig:
@@ -48,6 +48,9 @@ class MemoryServiceError(str, Enum):
 
 class MemoryService:
     """Memory management service using SQLAlchemy."""
+
+    def __init__(self, llm_client: Optional[LLMClientProtocol] = None):
+        self.llm_client = llm_client
 
     def _message_to_dict(self, db_message: ConversationMemoryDB) -> Dict[str, Any]:
         """Convert database message to dictionary."""
@@ -364,23 +367,12 @@ class MemoryService:
 
     def _generate_summary(self, messages: List[ConversationMemoryDB], old_summary: Optional[str] = None) -> str:
         """
-        Generate summary using OpenAI API.
-
-        Args:
-            messages: List of messages to summarize
-            old_summary: Optional previous summary to consider when generating new summary
-
-        Returns:
-            Generated summary text
+        Generate summary using LLM API.
         """
         try:
-            # Initialize OpenAI client
-            api_key = os.getenv("OPENAI_API_KEY")
-            if not api_key:
+            if not self.llm_client:
                 print(MemoryServiceError.OPENAI_KEY_MISSING.value)
-                return "Error: OpenAI API key not configured"
-
-            client = OpenAI(api_key=api_key)
+                return "Error: LLM client not configured"
 
             # Format messages for summarization
             conversation_text = self._format_messages_for_summary(messages)
@@ -396,7 +388,7 @@ class MemoryService:
             system_prompt = prompt_manager.get_conversation_summary_system_prompt()
 
             # Generate summary
-            response = client.chat.completions.create(
+            response = self.llm_client.chat_completion(
                 model=MemorySummaryConfig.DEFAULT_MODEL,
                 messages=[
                     {"role": "system", "content": system_prompt},

@@ -21,6 +21,8 @@ from models.db.agent import AgentDB
 from models.db.persona import PersonaDB
 from models import Persona
 from db.session import SessionLocal
+from services.llm_openai_adapter import OpenAIClientAdapter
+from services.llm_protocol import LLMClientProtocol
 
 # Load environment variables
 load_dotenv()
@@ -46,7 +48,7 @@ class AgentService:
         model: str = AgentConfig.DEFAULT_MODEL,
         memory_agent_i=None,
         *,
-        openai_client: Optional[OpenAI] = None,
+        llm_client: LLMClientProtocol = None,
         memory_service: Optional[MemoryService] = None,
         chat_service: Optional[ChatService] = None,
         user_service: Optional[UserService] = None,
@@ -55,14 +57,13 @@ class AgentService:
     ):
         """
         Initialize the memory agent service with required dependencies.
-
         Args:
             persona: The persona configuration
             instruction: The instruction for the agent
             user: The user object
-            model: The OpenAI model to use
+            model: The LLM model to use
             memory_agent_i: Memory agent identifier
-            openai_client: OpenAI client instance (injected)
+            llm_client: LLM client instance (injected)
             memory_service: Memory service instance (injected)
             chat_service: Chat service instance (injected)
             user_service: User service instance (injected)
@@ -71,7 +72,7 @@ class AgentService:
         """
         self._validate_environment()
         self._initialize_dependencies(
-            openai_client, memory_service, chat_service,
+            llm_client, memory_service, chat_service,
             user_service, session_service, prompt_builder
         )
         self._initialize_configuration(model, persona, instruction, memory_agent_i, user)
@@ -86,16 +87,15 @@ class AgentService:
 
     def _initialize_dependencies(
         self,
-        openai_client: Optional[OpenAI],
+        llm_client: LLMClientProtocol,
         memory_service: Optional[MemoryService],
         chat_service: Optional[ChatService],
         user_service: Optional[UserService],
         session_service: Optional['SessionService'],
         prompt_builder: Optional[PromptBuilder]
     ) -> None:
-        api_key = os.getenv("OPENAI_API_KEY")
-        self.client = openai_client or OpenAI(api_key=api_key)
-        self.memory_service = memory_service or MemoryService()
+        self.client = llm_client
+        self.memory_service = memory_service or MemoryService(llm_client=self.client)
         self.chat_service = chat_service or ChatService()
         self.session_service = session_service or SessionService()
         self.user_service = user_service
@@ -117,9 +117,9 @@ class AgentService:
 
     def _initialize_tools(self) -> None:
         self.extract_user_name_tool = ExtractUserNameTool(user_service=self.user_service)
-        self.catalog_search_tool = CatalogSearchTool(openai_client=self.client)
+        self.catalog_search_tool = CatalogSearchTool(llm_client=self.client)
         self.car_financial_tool = CarFinancialTool()
-        self.kavak_info_search_tool = KavakInfoSearchTool(openai_client=self.client)
+        self.kavak_info_search_tool = KavakInfoSearchTool(llm_client=self.client)
 
     @staticmethod
     def fetch_memory_agent_data(agent_id: str) -> Tuple[Optional[Persona], Optional[str]]:
@@ -456,14 +456,7 @@ class AgentService:
 
     def _get_openai_response(self, messages: List[Any], tools: Optional[List[Dict]] = None) -> str:
         """
-        Get response from OpenAI API.
-
-        Parameters:
-            messages (List[Any]): The messages to send to OpenAI.
-            tools (Optional[List[Dict]]): Tools to use with the API call.
-
-        Returns:
-            str: The response from OpenAI.
+        Get response from LLM API.
         """
         try:
             kwargs = {
@@ -476,16 +469,16 @@ class AgentService:
             if tools:
                 kwargs["tools"] = tools
 
-            completion = self.client.chat.completions.create(**kwargs)
+            completion = self.client.chat_completion(**kwargs)
 
             response = completion.choices[0].message.content
             if response is None:
-                return "No response received from OpenAI"
+                return "No response received from LLM"
 
             return response
 
         except Exception as e:
-            return f"Error getting response from OpenAI: {e}"
+            return f"Error getting response from LLM: {e}"
 
     def _build_user_preferences_section(self) -> str:
         """
@@ -638,7 +631,7 @@ class AgentService:
         ]
 
     def _make_openai_call(self, messages: List[Dict], tool_metas: List[Dict]) -> Any:
-        """Make OpenAI API call with tools."""
+        """Make LLM API call with tools."""
         kwargs = {
             "model": self.model,
             "messages": messages,
@@ -650,7 +643,7 @@ class AgentService:
         if tool_metas:
             kwargs["tools"] = tool_metas
 
-        return self.client.chat.completions.create(**kwargs)
+        return self.client.chat_completion(**kwargs)
 
     def _process_tool_calls(self, tool_calls: List, messages: List[Dict], user_id: str) -> None:
         """Process tool calls and add results to messages."""
@@ -714,6 +707,6 @@ class AgentService:
         if tool_metas:
             kwargs["tools"] = tool_metas
 
-        response = self.client.chat.completions.create(**kwargs)
+        response = self.client.chat_completion(**kwargs)
         return response.choices[0].message.content
 
