@@ -1,0 +1,5 @@
+La consulta del cliente es:
+"{query}"
+
+Información relevante encontrada (resumida):
+{content} 
