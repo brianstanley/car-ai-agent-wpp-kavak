@@ -5,8 +5,6 @@ Seeders for creating test data in the database.
 
 import psycopg2
 from psycopg2.extras import RealDictCursor
-from uuid import uuid4
-from datetime import datetime, UTC
 
 from models.schemas.agent import Agent
 from db.config import Config
@@ -105,7 +103,7 @@ class DatabaseSeeder:
                             tools=agent_data.get('tools')
                         )
 
-                                        # Create new agent using prompt from file
+                    # Create new agent using prompt from file
                     instruction = prompt_manager.get_car_sales_agent_prompt()
 
                     cursor.execute("""

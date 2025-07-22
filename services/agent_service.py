@@ -350,12 +350,11 @@ class AgentService:
 
     def _build_system_message(self) -> Dict[str, str]:
         """Build the system message with persona, instruction, user name, and preferences."""
-        print("   Step 1: Building system message...")
+        print("Step 1: Building system message...")
 
         # Build base system content
         system_content = self._build_base_system_content()
 
-        # Add user name section
         system_content = self._add_user_name_to_system(system_content)
 
         # Add user preferences section

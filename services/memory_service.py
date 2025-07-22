@@ -52,23 +52,6 @@ class MemoryService:
     def __init__(self, llm_client: Optional[LLMClientProtocol] = None):
         self.llm_client = llm_client
 
-    def _message_to_dict(self, db_message: ConversationMemoryDB) -> Dict[str, Any]:
-        """Convert database message to dictionary."""
-        return {
-            'id': str(db_message.id),
-            'role': db_message.role,
-            'content': db_message.content,
-            'created_at': db_message.created_at
-        }
-
-    def _summary_to_dict(self, db_summary: SummaryDB) -> Dict[str, Any]:
-        """Convert database summary to dictionary."""
-        return {
-            'id': str(db_summary.id),
-            'text': db_summary.text,
-            'created_at': db_summary.created_at
-        }
-
     def store_message(self, chat_session_id: UUID, role: str, content: str) -> Optional[UUID]:
         """
         Store a message in the conversations_memory table.
@@ -127,8 +110,6 @@ class MemoryService:
         except SQLAlchemyError as e:
             print(MemoryServiceError.DB_RETRIEVE_MESSAGES.value.format(error=e))
             return []
-
-
 
     def get_session_messages_with_summary(self, chat_session_id: UUID) -> List[Dict[str, Any]]:
         """
@@ -268,6 +249,23 @@ class MemoryService:
         except SQLAlchemyError as e:
             print(MemoryServiceError.DB_RETRIEVE_SUMMARIES.value.format(error=e))
             return []
+
+    def _message_to_dict(self, db_message: ConversationMemoryDB) -> Dict[str, Any]:
+        """Convert database message to dictionary."""
+        return {
+            'id': str(db_message.id),
+            'role': db_message.role,
+            'content': db_message.content,
+            'created_at': db_message.created_at
+        }
+
+    def _summary_to_dict(self, db_summary: SummaryDB) -> Dict[str, Any]:
+        """Convert database summary to dictionary."""
+        return {
+            'id': str(db_summary.id),
+            'text': db_summary.text,
+            'created_at': db_summary.created_at
+        }
 
     def _get_unsummarized_messages(self, chat_session_id: UUID, limit: Optional[int] = None) -> List[ConversationMemoryDB]:
         """

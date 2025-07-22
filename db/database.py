@@ -4,7 +4,6 @@ from typing import List, Dict, Any, Optional
 import logging
 
 from db.session import engine, SessionLocal
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -94,8 +93,5 @@ class DatabaseManager:
             return False
 
     def close(self):
-        """Close database connections."""
-        # Note: With centralized session management,
-        # individual DatabaseManager instances don't need to dispose the engine
-        # The engine is shared across the application
+        #TODO implement close method to clean up resources
         logger.info("DatabaseManager instance closed")
