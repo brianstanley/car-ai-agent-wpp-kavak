@@ -60,7 +60,7 @@ def main():
         model="gpt-4o",
         memory_agent_i=memory_agent_id,
         user=user,
-        llm_client=llm_client,  # Cambiado aquí
+        llm_client=llm_client,
         memory_service=memory_service,
         chat_service=chat_service,
         user_service=user_service,
