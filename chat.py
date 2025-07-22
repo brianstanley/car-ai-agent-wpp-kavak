@@ -6,6 +6,7 @@ Chat interactivo usando MemAgentService para gestionar la conversación.
 from dotenv import load_dotenv
 from typing import Tuple, Optional
 from uuid import UUID
+import os
 
 from db.session import SessionLocal
 from models.db.agent import AgentDB
@@ -16,8 +17,8 @@ from services.user_service import UserService
 from services.chat_service import ChatService
 from services.memory_service import MemoryService
 from services.agent_service import AgentService
-from openai import OpenAI
 from services.llm_openai_adapter import OpenAIClientAdapter
+from utils.tokenizer import OpenAITokenizerWrapper, truncate_text_to_max_tokens
 
 # Cargar variables de entorno
 load_dotenv()
@@ -80,6 +81,13 @@ def main():
             if not user_input:
                 print("Por favor, escribe un mensaje o comando.")
                 continue
+
+            MAX_USER_QUERY_TOKENS = int(os.getenv("MAX_USER_QUERY_TOKENS", 1024))
+            tokenizer = OpenAITokenizerWrapper(model_name="cl100k_base")
+            num_tokens = len(tokenizer.tokenize(user_input))
+            if num_tokens > MAX_USER_QUERY_TOKENS:
+                user_input = truncate_text_to_max_tokens(user_input, MAX_USER_QUERY_TOKENS, model_name="cl100k_base")
+                print(f"Tu mensaje fue muy largo y ha sido truncado a los primeros {MAX_USER_QUERY_TOKENS} tokens.")
 
             print("🤖 Assistant: ", end="", flush=True)
             response = agent.run(user_input, chat_session_id)

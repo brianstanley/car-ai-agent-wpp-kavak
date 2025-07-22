@@ -1,4 +1,5 @@
 # Proyecto Kavak WhatsApp Bot
+![CI](https://github.com/brianstanley/car-ai-agent-wpp-kavak/actions/workflows/ci.yml/badge.svg)
 
 
 ## Diagramas del Sistema
@@ -14,7 +15,6 @@ A continuación presento los diagramas principales que describen la arquitectura
 ![Prompts Diagram](diagrams/prompts_diagram.png)
 
 
-![CI](https://github.com/brianstanley/car-ai-agent-wpp-kavak/actions/workflows/ci.yml/badge.svg)
 
 ## Requisitos
 

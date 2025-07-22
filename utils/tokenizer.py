@@ -52,3 +52,18 @@ class OpenAITokenizerWrapper(PreTrainedTokenizerBase):
     def from_pretrained(cls, *args, **kwargs):
         """Class method to match HuggingFace's interface."""
         return cls()
+
+
+def truncate_text_to_max_tokens(text: str, max_tokens: int, model_name: str = "cl100k_base") -> str:
+    """
+    Truncate the input text to a maximum number of tokens using the specified tokenizer model.
+    Args:
+        text: The input string to truncate.
+        max_tokens: The maximum number of tokens allowed.
+        model_name: The tokenizer model to use (default: "cl100k_base").
+    Returns:
+        The truncated string, containing at most max_tokens tokens.
+    """
+    tokenizer = OpenAITokenizerWrapper(model_name=model_name)
+    tokens = tokenizer.tokenizer.encode(text)[:max_tokens]
+    return tokenizer.tokenizer.decode(tokens)

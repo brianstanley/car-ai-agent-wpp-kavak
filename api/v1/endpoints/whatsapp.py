@@ -15,6 +15,7 @@ from services.memory_service import MemoryService
 from services.agent_service import AgentService
 from services.prompt_builder import PromptBuilder
 from services.llm_openai_adapter import OpenAIClientAdapter
+from utils.tokenizer import OpenAITokenizerWrapper, truncate_text_to_max_tokens
 
 logger = logging.getLogger(__name__)
 
@@ -24,10 +25,6 @@ TWILIO_WHATSAPP_PHONE_NUMBER = os.getenv("TWILIO_WHATSAPP_NUMBER")
 MEMORY_AGENT_ID = "22222222-2222-2222-2222-222222222222"
 
 router = APIRouter(prefix="/whatsapp", tags=["WhatsApp"])
-
-
-# Remove the duplicate function - use AgentService.fetch_memory_agent_data instead
-
 
 def parse_whatsapp_message(body: str, from_number: str) -> tuple[str, str]:
     """
@@ -111,8 +108,13 @@ async def whatsapp_webhook(
         logger.info(f'Body: {Body}')
         logger.info(f'From: {From}')
 
-
         user_input, phone_number = parse_whatsapp_message(Body, From) # Parse the number and query
+
+        MAX_USER_QUERY_TOKENS = int(os.getenv("MAX_USER_QUERY_TOKENS", 1024))
+        tokenizer = OpenAITokenizerWrapper(model_name="cl100k_base")
+        num_tokens = len(tokenizer.tokenize(user_input))
+        if num_tokens > MAX_USER_QUERY_TOKENS:
+            user_input = truncate_text_to_max_tokens(user_input, MAX_USER_QUERY_TOKENS, model_name="cl100k_base")
 
         llm_client = OpenAIClientAdapter(api_key=os.getenv("OPENAI_API_KEY"))
 

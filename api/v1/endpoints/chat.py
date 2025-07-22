@@ -2,10 +2,8 @@
 Chat session management endpoints.
 """
 
-from typing import List, Dict, Any, Optional
-from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel
-from uuid import UUID
+from typing import List, Dict, Optional
+from fastapi import APIRouter, HTTPException
 
 from services.chat_service import ChatService
 from services.session_service import SessionService
@@ -13,7 +11,6 @@ from services.memory_service import MemoryService
 from services.agent_service import AgentService
 from services.user_service import UserService
 from services.prompt_builder import PromptBuilder
-from models.schemas.chat_session import ChatSession
 from models.schemas.chat import (
     ChatSessionResponse,
     ChatSessionCreateRequest,
@@ -22,14 +19,11 @@ from models.schemas.chat import (
     SummaryResponse
 )
 from pydantic import BaseModel
-from models.db.agent import AgentDB
-from models.db.persona import PersonaDB
-from models import Persona
-from db.session import SessionLocal
-from openai import OpenAI
 from uuid import UUID
 import os
 from services.llm_openai_adapter import OpenAIClientAdapter
+from utils.tokenizer import OpenAITokenizerWrapper, truncate_text_to_max_tokens
+import logging
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
 
@@ -260,7 +254,13 @@ async def get_session_summaries(session_id: str) -> List[SummaryResponse]:
 async def send_message_to_agent(request: SendMessageRequest) -> SendMessageResponse:
     """Send a message to the agent and get a response."""
     try:
-        from uuid import UUID
+        MAX_USER_QUERY_TOKENS = int(os.getenv("MAX_USER_QUERY_TOKENS", 1024))
+        tokenizer = OpenAITokenizerWrapper(model_name="cl100k_base")
+        num_tokens = len(tokenizer.tokenize(request.message))
+        user_message = request.message
+        if num_tokens > MAX_USER_QUERY_TOKENS:
+            user_message = truncate_text_to_max_tokens(request.message, MAX_USER_QUERY_TOKENS, model_name="cl100k_base")
+            logging.warning(f"User message exceeded {MAX_USER_QUERY_TOKENS} tokens and was truncated.")
 
         # Validate session ID
         try:
@@ -340,8 +340,8 @@ async def send_message_to_agent(request: SendMessageRequest) -> SendMessageRespo
         )
 
         # Run the agent and get response
-        print(f'Running agent with input: {request.message}')
-        response = agent.run(request.message, request.session_id)
+        print(f'Running agent with input: {user_message}')
+        response = agent.run(user_message, request.session_id)
         print(f'Agent response: {response}')
 
         # Store the user message in memory
