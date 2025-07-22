@@ -7,7 +7,7 @@ import json
 from typing import Dict, Any, List, Optional
 from openai import OpenAI
 from pydantic import BaseModel, Field
-from prompts.catalog_search import get_catalog_search_normalization_prompt
+from prompts.prompt_manager import prompt_manager
 
 
 class CarFilters(BaseModel):
@@ -102,7 +102,7 @@ class CatalogSearchTool:
         ]
         brands_str = ", ".join(brands_list)
 
-        extraction_prompt = get_catalog_search_normalization_prompt(brands_str)
+        extraction_prompt = prompt_manager.get_catalog_search_normalization_prompt(brands_str)
 
         try:
             normalize_response = self.client.chat.completions.create(

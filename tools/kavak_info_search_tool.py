@@ -8,7 +8,7 @@ from openai import OpenAI
 from enum import Enum
 
 from services.kavak_info_service import KavakInfoService
-from prompts.conversation_summary import get_kavak_info_summary_prompt, get_kavak_info_summary_system_prompt
+from prompts.prompt_manager import prompt_manager
 
 
 MAX_RESULTS_DEFAULT = 3
@@ -89,13 +89,13 @@ class KavakInfoSearchTool:
         """
         snippets = [res.text for res in results[:3]]
         content = "\n".join(snippets)
-        summary_prompt = get_kavak_info_summary_prompt(query, content)
+        summary_prompt = prompt_manager.get_kavak_info_summary_prompt(query, content)
 
         try:
             response = self.client.chat.completions.create(
                 model=model,
                 messages=[
-                    {"role": "system", "content": get_kavak_info_summary_system_prompt()},
+                    {"role": "system", "content": prompt_manager.get_kavak_info_summary_system_prompt()},
                     {"role": "user", "content": summary_prompt}
                 ],
                 temperature=0,

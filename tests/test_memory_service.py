@@ -440,11 +440,11 @@ class TestMemoryService:
     def test_should_summarize_conversation_true(self, mock_get_unsummarized, memory_service, sample_chat_session_id):
         """Test that summarization should occur when conditions are met."""
         # Mock many unsummarized messages
-        mock_messages = [Mock() for _ in range(15)]  # More than DEFAULT_WINDOW_SIZE + DEFAULT_TOLERANCE
+        mock_messages = [Mock() for _ in range(18)]  # DEFAULT_WINDOW_SIZE + DEFAULT_TOLERANCE (12 + 6)
         mock_get_unsummarized.return_value = mock_messages
-        
+    
         result = memory_service.should_summarize_conversation(sample_chat_session_id)
-        
+    
         assert result is True
 
     @patch('services.memory_service.MemoryService._get_unsummarized_messages')
@@ -472,9 +472,9 @@ class TestMemoryService:
         """Test successful conversation summarization."""
         # Mock dependencies - need enough messages to trigger summarization
         mock_should_summarize.return_value = True
-        # Create enough messages to meet the threshold (14 messages needed)
+        # Create enough messages to meet the threshold (18 messages needed: DEFAULT_WINDOW_SIZE + DEFAULT_TOLERANCE)
         mock_messages = []
-        for i in range(15):
+        for i in range(18):
             mock_msg = Mock()
             mock_msg.id = uuid4()
             mock_msg.created_at = datetime.now(UTC)
@@ -573,7 +573,7 @@ class TestMemorySummaryConfig:
         """Test that configuration constants are properly set."""
         assert MemorySummaryConfig.DEFAULT_MODEL == "gpt-3.5-turbo"
         assert MemorySummaryConfig.DEFAULT_MAX_TOKENS == 300
-        assert MemorySummaryConfig.DEFAULT_TEMPERATURE == 0.3
-        assert MemorySummaryConfig.DEFAULT_WINDOW_SIZE == 10
-        assert MemorySummaryConfig.DEFAULT_TOLERANCE == 4
+        assert MemorySummaryConfig.DEFAULT_TEMPERATURE == 0.1
+        assert MemorySummaryConfig.DEFAULT_WINDOW_SIZE == 12
+        assert MemorySummaryConfig.DEFAULT_TOLERANCE == 6
         assert MemorySummaryConfig.SUMMARY_LENGTH_WORDS == 100 
