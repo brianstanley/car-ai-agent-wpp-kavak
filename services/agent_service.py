@@ -8,7 +8,6 @@ import sys
 
 from typing import Optional, List, Dict, Any, Tuple
 from uuid import UUID
-from openai import OpenAI
 from dotenv import load_dotenv
 
 from services.memory_service import MemoryService
@@ -21,13 +20,10 @@ from models.db.agent import AgentDB
 from models.db.persona import PersonaDB
 from models import Persona
 from db.session import SessionLocal
-from services.llm_openai_adapter import OpenAIClientAdapter
 from services.llm_protocol import LLMClientProtocol
 
-# Load environment variables
 load_dotenv()
 
-# Configuration constants
 class AgentConfig:
     DEFAULT_MODEL = "gpt-4o"
     DEFAULT_MAX_TOKENS = 1000
@@ -171,25 +167,17 @@ class AgentService:
         """
         try:
             print(f"Chat Session ID: {chat_session_id}")
-
-            # 1) Prepare memory and conversation IDs
             memory_id = self._validate_session_exists(chat_session_id)
 
-            # 2) Build augmented query using PromptBuilder
             print("\nBuilding prompt...")
             messages = self._build_prompt_messages(query, memory_id)
 
-            # LOG DEL PROMPT QUE SE VA A ENVIAR AL LLM
-            print("\nPROMPT QUE SE ENVÍA AL LLM:")
             for i, msg in enumerate(messages):
                 print(f"[{i}] {msg['role'].upper()}\n{msg['content']}\n{'-'*40}")
 
-            # 5) Record user's query in memory
+            # Record user's query in memory
             self._record_user_query(query, chat_session_id)
 
-            # 6) Get response from OpenAI
-            print("\nGetting response from OpenAI...")
-            # response = self._get_openai_response(messages)
             response = self._execute_main_loop(
                 messages=messages,
                 query=query,
@@ -198,11 +186,11 @@ class AgentService:
                 user_id=self.user.id
             )
 
-            # 7) Record assistant response in memory
+            # Record assistant response in memory
             if response:
                 self._record_assistant_response(response, chat_session_id)
 
-            # 8) Check if conversation should be summarized
+            # Check if conversation should be summarized
             self._check_and_summarize_conversation(chat_session_id)
 
             return response or "No response received from agent"
@@ -214,12 +202,12 @@ class AgentService:
 
     def evaluate(self, user_query: str, chat_session_id: str):
         """
-        Evalúa la respuesta del agente, devolviendo los elementos estructurados para el meta-agente evaluador.
+        evaluate the agent's response to a user query.
         """
         memory_id = self._validate_session_exists(chat_session_id)
         messages = self._build_prompt_messages(user_query, memory_id)
         tool_metas = self._get_tool_definitions()
-        # Solo hacemos una llamada, no el main loop
+        # Solo hacemos una llamada, no el main loop. TODO Hacer loop completo
         response = self._make_openai_call(messages, tool_metas)
         choice = response.choices[0]
         tool_calls = getattr(choice.message, "tool_calls", [])

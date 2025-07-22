@@ -387,7 +387,6 @@ class MemoryService:
             # Get system prompt from prompts folder
             system_prompt = prompt_manager.get_conversation_summary_system_prompt()
 
-            # Generate summary
             response = self.llm_client.chat_completion(
                 model=MemorySummaryConfig.DEFAULT_MODEL,
                 messages=[

@@ -1,5 +1,19 @@
 # Proyecto Kavak WhatsApp Bot
 
+
+## Diagramas del Sistema
+
+A continuación presento los diagramas principales que describen la arquitectura general del sistema y la arquitectura de prompts utilzada.:
+
+### Diagrama de Arquitectura del Sistema
+
+![System Design](diagrams/system_design.png)
+
+### Diagrama de Flujo de Prompts
+
+![Prompts Diagram](diagrams/prompts_diagram.png)
+
+
 ![CI](https://github.com/brianstanley/car-ai-agent-wpp-kavak/actions/workflows/ci.yml/badge.svg)
 
 ## Requisitos
@@ -98,4 +112,3 @@ python chat.py
 
 Vas a ver un prompt donde puedes escribir mensajes y recibir respuestas del agente. Usa `/quit` o `/exit` para salir del chat.
 
----
