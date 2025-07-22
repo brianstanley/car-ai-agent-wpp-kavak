@@ -21,7 +21,8 @@ class TestMemoryService:
     @pytest.fixture
     def memory_service(self):
         """Create a MemoryService instance for testing."""
-        return MemoryService()
+        mock_llm = Mock()
+        return MemoryService(llm_client=mock_llm)
 
     @pytest.fixture
     def sample_chat_session_id(self):
@@ -373,60 +374,30 @@ class TestMemoryService:
         
         assert result is False
 
-    @patch('services.memory_service.OpenAI')
-    @patch('services.memory_service.prompt_manager')
-    @patch('os.getenv')
-    def test_generate_summary_success(self, mock_getenv, mock_prompt_manager, mock_openai, memory_service, sample_messages):
-        """Test successful summary generation."""
-        # Mock environment variable
-        mock_getenv.return_value = "test-api-key"
-        
-        # Mock prompt manager
-        mock_prompt_manager.get_conversation_summary_prompt.return_value = "Test prompt"
-        mock_prompt_manager.get_conversation_summary_system_prompt.return_value = "Test system prompt"
-        
-        # Mock OpenAI client
-        mock_client = Mock()
-        mock_openai.return_value = mock_client
-        
-        # Mock response
+    def test_generate_summary_success(self, memory_service, sample_messages):
+        mock_llm = Mock()
+        memory_service.llm_client = mock_llm
         mock_response = Mock()
         mock_response.choices = [Mock()]
         mock_response.choices[0].message.content = "User inquired about car financing for a Toyota Camry"
-        mock_client.chat.completions.create.return_value = mock_response
-        
-        result = memory_service._generate_summary(sample_messages)
-        
-        assert result == "User inquired about car financing for a Toyota Camry"
-        mock_client.chat.completions.create.assert_called_once()
+        mock_llm.chat_completion.return_value = mock_response
 
-    @patch('services.memory_service.OpenAI')
-    @patch('services.memory_service.prompt_manager')
-    @patch('os.getenv')
-    def test_generate_summary_with_old_summary(self, mock_getenv, mock_prompt_manager, mock_openai, memory_service, sample_messages):
-        """Test summary generation with existing summary."""
-        # Mock environment variable
-        mock_getenv.return_value = "test-api-key"
-        
-        # Mock prompt manager
-        mock_prompt_manager.get_conversation_summary_prompt.return_value = "Test prompt"
-        mock_prompt_manager.get_conversation_summary_system_prompt.return_value = "Test system prompt"
-        
-        # Mock OpenAI client
-        mock_client = Mock()
-        mock_openai.return_value = mock_client
-        
-        # Mock response
+        result = memory_service._generate_summary(sample_messages)
+        assert result == "User inquired about car financing for a Toyota Camry"
+        mock_llm.chat_completion.assert_called_once()
+
+    def test_generate_summary_with_old_summary(self, memory_service, sample_messages):
+        mock_llm = Mock()
+        memory_service.llm_client = mock_llm
         mock_response = Mock()
         mock_response.choices = [Mock()]
         mock_response.choices[0].message.content = "Updated summary with new information"
-        mock_client.chat.completions.create.return_value = mock_response
-        
+        mock_llm.chat_completion.return_value = mock_response
+
         old_summary = "Previous conversation about car financing"
         result = memory_service._generate_summary(sample_messages, old_summary)
-        
         assert result == "Updated summary with new information"
-        mock_client.chat.completions.create.assert_called_once()
+        mock_llm.chat_completion.assert_called_once()
 
     def test_format_messages_for_summary(self, memory_service, sample_messages):
         """Test formatting messages for summary generation."""

@@ -9,6 +9,7 @@ from enum import Enum
 
 from services.kavak_info_service import KavakInfoService
 from prompts.prompt_manager import prompt_manager
+from services.llm_protocol import LLMClientProtocol
 
 
 MAX_RESULTS_DEFAULT = 3
@@ -19,14 +20,14 @@ class KavakInfoSearchError(str, Enum):
     SEARCH = "Error en búsqueda de información de Kavak: {error}"
 
 class KavakInfoSearchTool:
-    def __init__(self, openai_client: Optional[OpenAI] = None):
+    def __init__(self, llm_client: Optional[LLMClientProtocol] = None):
         """
         Initialize the tool.
 
         Args:
-            openai_client: OpenAI client for summarization
+            llm_client: LLM client for summarization
         """
-        self.client = openai_client
+        self.llm_client = llm_client
         self.kavak_info_service = KavakInfoService()
 
     def get_tool_definition(self) -> Dict[str, Any]:
@@ -92,7 +93,7 @@ class KavakInfoSearchTool:
         summary_prompt = prompt_manager.get_kavak_info_summary_prompt(query, content)
 
         try:
-            response = self.client.chat.completions.create(
+            response = self.llm_client.chat_completion(
                 model=model,
                 messages=[
                     {"role": "system", "content": prompt_manager.get_kavak_info_summary_system_prompt()},

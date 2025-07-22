@@ -8,6 +8,7 @@ from typing import Dict, Any, List, Optional
 from openai import OpenAI
 from pydantic import BaseModel, Field
 from prompts.prompt_manager import prompt_manager
+from services.llm_protocol import LLMClientProtocol
 
 
 class CarFilters(BaseModel):
@@ -27,14 +28,14 @@ class CarFilters(BaseModel):
 class CatalogSearchTool:
     """Tool for searching cars in the catalog."""
 
-    def __init__(self, openai_client: Optional[OpenAI] = None):
+    def __init__(self, llm_client: Optional[LLMClientProtocol] = None):
         """
         Initialize the tool.
 
         Args:
-            openai_client: OpenAI client for data normalization
+            llm_client: LLM client for data normalization
         """
-        self.client = openai_client
+        self.llm_client = llm_client
 
     def get_tool_definition(self) -> Dict[str, Any]:
         """
@@ -92,7 +93,7 @@ class CatalogSearchTool:
         Returns:
             Dict: Normalized filters
         """
-        if not self.client:
+        if not self.llm_client:
             return args
 
         brands_list = [
@@ -105,7 +106,7 @@ class CatalogSearchTool:
         extraction_prompt = prompt_manager.get_catalog_search_normalization_prompt(brands_str)
 
         try:
-            normalize_response = self.client.chat.completions.create(
+            normalize_response = self.llm_client.chat_completion(
                 model=model,
                 messages=[
                     {"role": "system", "content": extraction_prompt},

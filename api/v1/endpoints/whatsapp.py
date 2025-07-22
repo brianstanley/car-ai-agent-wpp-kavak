@@ -7,29 +7,23 @@ import logging
 from fastapi import APIRouter, Request, Form, HTTPException
 from fastapi.responses import JSONResponse
 from openai import OpenAI
-from    twilio.rest import Client
+from twilio.rest import Client
 
 from services.user_service import UserService
 from services.chat_service import ChatService
 from services.memory_service import MemoryService
 from services.agent_service import AgentService
 from services.prompt_builder import PromptBuilder
-from models.db.agent import AgentDB
-from models.db.persona import PersonaDB
-from models import Persona
-from db.session import SessionLocal
-from uuid import UUID
+from services.llm_openai_adapter import OpenAIClientAdapter
 
-# Configure logging
 logger = logging.getLogger(__name__)
 
-# Constants
 TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
 TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
 TWILIO_WHATSAPP_PHONE_NUMBER = os.getenv("TWILIO_WHATSAPP_NUMBER")
 MEMORY_AGENT_ID = "22222222-2222-2222-2222-222222222222"
 
-router = APIRouter(prefix="/whaptsapp", tags=["WhatsApp"])
+router = APIRouter(prefix="/whatsapp", tags=["WhatsApp"])
 
 
 # Remove the duplicate function - use AgentService.fetch_memory_agent_data instead
@@ -112,24 +106,22 @@ async def whatsapp_webhook(
     WhatsApp webhook endpoint to handle incoming messages.
     """
     try:
-        # 1) Log the request information
         logger.info(f'WhatsApp endpoint triggered...')
         logger.info(f'Request: {request}')
         logger.info(f'Body: {Body}')
         logger.info(f'From: {From}')
 
-        # 2) Parse the number and query
-        user_input, phone_number = parse_whatsapp_message(Body, From)
-        logger.info(f'Parsed - Phone: {phone_number}, Input: {user_input}')
 
-        # 3) Initialize services
+        user_input, phone_number = parse_whatsapp_message(Body, From) # Parse the number and query
+
+        llm_client = OpenAIClientAdapter(api_key=os.getenv("OPENAI_API_KEY"))
+
         user_service = UserService()
         chat_service = ChatService()
-        memory_service = MemoryService()
-        openai_client = OpenAI()
+        memory_service = MemoryService(llm_client=llm_client)
         prompt_builder = PromptBuilder()
 
-        # 4) Create or get existing chat session
+        #Create or get existing chat session
         user = user_service.get_or_create_user(phone_number)
         session_info = chat_service.initialize_chat(phone_number)
         chat_session_id = str(session_info['session'].id)
@@ -137,7 +129,6 @@ async def whatsapp_webhook(
         logger.info(f'User: {user.phone_number} (ID: {user.id})')
         logger.info(f'Session: {chat_session_id}')
 
-        # 5) Fetch memory agent data
         persona, instruction = AgentService.fetch_memory_agent_data(MEMORY_AGENT_ID)
         if not instruction:
             logger.error("Could not fetch memory agent data")
@@ -153,7 +144,7 @@ async def whatsapp_webhook(
             model="gpt-4o",
             memory_agent_i=MEMORY_AGENT_ID,
             user=user,
-            openai_client=openai_client,
+            llm_client=llm_client,
             memory_service=memory_service,
             chat_service=chat_service,
             user_service=user_service,

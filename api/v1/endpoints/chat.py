@@ -29,6 +29,7 @@ from db.session import SessionLocal
 from openai import OpenAI
 from uuid import UUID
 import os
+from services.llm_openai_adapter import OpenAIClientAdapter
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
 
@@ -54,7 +55,7 @@ async def create_chat_session(session_data: ChatSessionCreateRequest) -> ChatSes
     try:
         chat_service = ChatService()
         session_info = chat_service.initialize_chat(session_data.phone_number)
-        
+
         session = session_info['session']
         return ChatSessionResponse(
             id=str(session.id),
@@ -74,10 +75,10 @@ async def get_chat_session(session_id: str) -> ChatSessionResponse:
         from uuid import UUID
         session_service = SessionService()
         session = session_service.get_session_by_id(UUID(session_id))
-        
+
         if not session:
             raise HTTPException(status_code=404, detail="Session not found")
-        
+
         return ChatSessionResponse(
             id=str(session.id),
             user_id=str(session.user_id),
@@ -97,7 +98,7 @@ async def end_chat_session(session_id: str) -> Dict[str, str]:
     try:
         chat_service = ChatService()
         success = chat_service.end_chat_session(UUID(session_id))
-        
+
         if success:
             return {"message": "Chat session ended successfully"}
         else:
@@ -112,18 +113,18 @@ async def get_user_chat_sessions(phone_number: str) -> List[ChatSessionResponse]
     try:
         from uuid import UUID
         from services.user_service import UserService
-        
+
         # First get the user by phone number
         user_service = UserService()
         user = user_service.get_user_by_phone(phone_number)
-        
+
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
-        
+
         # Then get all sessions for that user
         session_service = SessionService()
         sessions = session_service.get_user_sessions(UUID(str(user.id)))
-        
+
         return [
             ChatSessionResponse(
                 id=str(session.id),
@@ -145,7 +146,7 @@ async def get_user_chat_sessions_by_id(user_id: str) -> List[ChatSessionResponse
         from uuid import UUID
         session_service = SessionService()
         sessions = session_service.get_user_sessions(UUID(user_id))
-        
+
         return [
             ChatSessionResponse(
                 id=str(session.id),
@@ -169,7 +170,7 @@ async def get_session_messages(session_id: str) -> List[MessageResponse]:
         from uuid import UUID
         memory_service = MemoryService()
         messages = memory_service.get_session_messages(UUID(session_id))
-        
+
         return [
             MessageResponse(
                 id=msg['id'],
@@ -192,7 +193,7 @@ async def get_last_session_messages(session_id: str, limit: int = 10) -> List[Me
         from uuid import UUID
         memory_service = MemoryService()
         messages = memory_service.get_last_n_messages(UUID(session_id), limit)
-        
+
         return [
             MessageResponse(
                 id=msg['id'],
@@ -215,10 +216,10 @@ async def get_session_stats(session_id: str) -> SessionStatsResponse:
         from uuid import UUID
         memory_service = MemoryService()
         stats = memory_service.get_session_stats(UUID(session_id))
-        
+
         first_message = stats.get('first_message')
         last_message = stats.get('last_message')
-        
+
         return SessionStatsResponse(
             total_messages=stats.get('total_messages', 0),
             user_messages=stats.get('user_messages', 0),
@@ -240,7 +241,7 @@ async def get_session_summaries(session_id: str) -> List[SummaryResponse]:
         from uuid import UUID
         memory_service = MemoryService()
         summaries = memory_service.get_last_n_summaries(UUID(session_id), 10)  # Get last 10 summaries
-        
+
         return [
             SummaryResponse(
                 id=summary['id'],
@@ -252,7 +253,7 @@ async def get_session_summaries(session_id: str) -> List[SummaryResponse]:
     except ValueError as e:
         raise HTTPException(status_code=400, detail="Invalid session ID format")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) 
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/send-message", response_model=SendMessageResponse)
@@ -260,7 +261,7 @@ async def send_message_to_agent(request: SendMessageRequest) -> SendMessageRespo
     """Send a message to the agent and get a response."""
     try:
         from uuid import UUID
-        
+
         # Validate session ID
         try:
             session_id = UUID(request.session_id)
@@ -271,11 +272,11 @@ async def send_message_to_agent(request: SendMessageRequest) -> SendMessageRespo
                 session_id=request.session_id,
                 error="Invalid session ID format"
             )
-        
+
         # Get session
         session_service = SessionService()
         session = session_service.get_session_by_id(session_id)
-        
+
         if not session:
             return SendMessageResponse(
                 success=False,
@@ -283,11 +284,11 @@ async def send_message_to_agent(request: SendMessageRequest) -> SendMessageRespo
                 session_id=request.session_id,
                 error="Session not found"
             )
-        
+
         # Get user
         user_service = UserService()
         user = user_service.get_user_by_id(str(session.user_id))
-        
+
         if not user:
             return SendMessageResponse(
                 success=False,
@@ -295,7 +296,7 @@ async def send_message_to_agent(request: SendMessageRequest) -> SendMessageRespo
                 session_id=request.session_id,
                 error="User not found"
             )
-        
+
         # Get agent from session
         if not session.agent_id:
             return SendMessageResponse(
@@ -304,7 +305,7 @@ async def send_message_to_agent(request: SendMessageRequest) -> SendMessageRespo
                 session_id=request.session_id,
                 error="No agent assigned to this session"
             )
-        
+
         # Fetch memory agent data using AgentService
         persona, instruction = AgentService.fetch_memory_agent_data(str(session.agent_id))
         if not instruction:
@@ -314,14 +315,15 @@ async def send_message_to_agent(request: SendMessageRequest) -> SendMessageRespo
                 session_id=request.session_id,
                 error="Memory agent not found"
             )
-        
+
+        llm_client = OpenAIClientAdapter(api_key=os.getenv("OPENAI_API_KEY"))
+
         # Initialize services
         chat_service = ChatService()
-        memory_service = MemoryService()
+        memory_service = MemoryService(llm_client=llm_client)
         session_service = SessionService()
-        openai_client = OpenAI()
         prompt_builder = PromptBuilder()
-        
+
         # Initialize AgentService
         agent = AgentService(
             persona=persona,
@@ -329,19 +331,19 @@ async def send_message_to_agent(request: SendMessageRequest) -> SendMessageRespo
             model="gpt-4o",
             memory_agent_i=str(session.agent_id),
             user=user,
-            openai_client=openai_client,
+            llm_client=llm_client,
             memory_service=memory_service,
             chat_service=chat_service,
             session_service=session_service,
             user_service=user_service,
             prompt_builder=prompt_builder
         )
-        
+
         # Run the agent and get response
         print(f'Running agent with input: {request.message}')
         response = agent.run(request.message, request.session_id)
         print(f'Agent response: {response}')
-        
+
         # Store the user message in memory
         message_id = None
         try:
@@ -352,7 +354,7 @@ async def send_message_to_agent(request: SendMessageRequest) -> SendMessageRespo
             )
         except Exception as e:
             print(f"Warning: Could not store user message: {e}")
-        
+
         # Store the assistant response in memory
         try:
             memory_service.store_message(
@@ -362,14 +364,14 @@ async def send_message_to_agent(request: SendMessageRequest) -> SendMessageRespo
             )
         except Exception as e:
             print(f"Warning: Could not store assistant response: {e}")
-        
+
         return SendMessageResponse(
             success=True,
             response=response,
             session_id=request.session_id,
             message_id=str(message_id) if message_id else None
         )
-        
+
     except Exception as e:
         print(f"Error in send_message_to_agent: {e}")
         return SendMessageResponse(
@@ -377,4 +379,4 @@ async def send_message_to_agent(request: SendMessageRequest) -> SendMessageRespo
             response="",
             session_id=request.session_id,
             error=str(e)
-        ) 
+        )

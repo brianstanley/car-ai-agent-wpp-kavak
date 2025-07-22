@@ -1,11 +1,12 @@
 import os
 from openai import OpenAI
+from services.llm_protocol import LLMClientProtocol
 from prompts.prompt_manager import prompt_manager
 
 class EvaluatorAgent:
-    def __init__(self, model="gpt-3.5-turbo", openai_client=None):
+    def __init__(self, model="gpt-3.5-turbo", llm_client: LLMClientProtocol = None):
         self.model = model
-        self.client = openai_client or OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        self.llm_client = llm_client
         self.prompt_template = prompt_manager.get_evaluator_prompt()
 
     def evaluate(self, user_query, agent_response, tools_invoked, expected, expected_tools):
@@ -16,7 +17,7 @@ class EvaluatorAgent:
             expected=expected,
             expected_tools=expected_tools
         )
-        completion = self.client.chat.completions.create(
+        completion = self.llm_client.chat_completion(
             model=self.model,
             messages=[{"role": "system", "content": "Eres un evaluador de interacciones de agentes conversacionales."},
                       {"role": "user", "content": prompt}],
