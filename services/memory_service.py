@@ -80,7 +80,6 @@ class MemoryService:
                 session.commit()
                 session.refresh(new_message)
 
-                print(f"✅ Stored {role} message with ID: {new_message.id}")
                 return new_message.id
 
         except SQLAlchemyError as e:

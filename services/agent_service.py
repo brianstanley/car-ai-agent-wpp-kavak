@@ -169,11 +169,7 @@ class AgentService:
             print(f"Chat Session ID: {chat_session_id}")
             memory_id = self._validate_session_exists(chat_session_id)
 
-            print("\nBuilding prompt...")
             messages = self._build_prompt_messages(query, memory_id)
-
-            for i, msg in enumerate(messages):
-                print(f"[{i}] {msg['role'].upper()}\n{msg['content']}\n{'-'*40}")
 
             # Record user's query in memory
             self._record_user_query(query, chat_session_id)
@@ -350,14 +346,8 @@ class AgentService:
 
     def _build_system_message(self) -> Dict[str, str]:
         """Build the system message with persona, instruction, user name, and preferences."""
-        print("Step 1: Building system message...")
-
-        # Build base system content
         system_content = self._build_base_system_content()
-
         system_content = self._add_user_name_to_system(system_content)
-
-        # Add user preferences section
         system_content = self._add_user_preferences_to_system(system_content)
 
         return {"role": "system", "content": system_content}
@@ -589,8 +579,7 @@ class AgentService:
 
     def _execute_main_loop(self, messages, query, memory_id, conversation_id, user_id: str):
         """
-        Ejecuta el ciclo principal de conversación con el LLM.
-        Usa herramientas modulares para diferentes funcionalidades.
+        Main loop for running the agent with conversation context and tool calls.
         """
         tool_metas = self._get_tool_definitions()
 
@@ -603,7 +592,6 @@ class AgentService:
                 self._process_tool_calls(tool_calls, messages, user_id)
                 return self._get_final_response(messages, tool_metas)
             else:
-                print("No se detectó tool_call, respondiendo directamente...\n")
                 return choice.message.content
 
         raise RuntimeError("Max steps exceeded without reaching a final answer.")
