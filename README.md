@@ -70,7 +70,7 @@ La API estará disponible en: http://localhost:8000/api/v1
 
 - Documentación Swagger: http://localhost:8000/docs
 - Documentación ReDoc: http://localhost:8000/redoc
-- Health Check: http://localhost:8000/health
+- Health Check: http://localhost:8000/v1/health
 
 ### 6. (Opcional) Recrear la base de datos y el contenedor
 
