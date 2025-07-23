@@ -42,5 +42,10 @@ def kavak_info_ingestion():
     from kavak_chatbot.scripts.kavak_info_ingestion import run_kavak_info_ingestion
     run_kavak_info_ingestion()
 
+@cli.command()
+def seeders():
+    from kavak_chatbot.scripts.seeders import run_seeders
+    run_seeders()
+
 if __name__ == "__main__":
     cli()
