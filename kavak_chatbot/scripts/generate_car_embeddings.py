@@ -235,5 +235,3 @@ def run_parse_cars_to_database():
     except Exception as e:
         print(f"❌ Error during processing: {e}")
         sys.exit(1)
-    finally:
-        session.close()
