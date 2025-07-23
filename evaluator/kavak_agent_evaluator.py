@@ -18,7 +18,7 @@ def run_kavak_evaluator():
 
     user = user_service.get_or_create_user("1111")
     session_info = chat_service.initialize_chat("1111")
-    chat_session_id = str(session_info['session'].id)
+    chat_session_id = str(session_info.session.id)
     memory_agent_id = os.getenv("DEFAULT_KAVAK_AGENT_ID", "22222222-2222-2222-2222-222222222222")
 
     from kavak_chatbot.services import AgentService
@@ -27,7 +27,7 @@ def run_kavak_evaluator():
         persona=persona,
         instruction=instruction,
         model="gpt-4",
-        memory_agent_i=memory_agent_id,
+        agent_id=memory_agent_id,
         user=user,
         llm_client=llm_client,
         memory_service=memory_service,

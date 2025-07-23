@@ -53,7 +53,7 @@ async def create_chat_session(session_data: ChatSessionCreateRequest) -> ChatSes
         chat_service = ChatService()
         session_info = chat_service.initialize_chat(session_data.phone_number, agent_id)
 
-        session = session_info['session']
+        session = session_info.session
         return ChatSessionResponse(
             id=str(session.id),
             user_id=str(session.user_id),
@@ -336,7 +336,7 @@ async def send_message_to_agent(request: SendMessageRequest) -> SendMessageRespo
             persona=persona,
             instruction=instruction,
             model="gpt-4o",
-            memory_agent_i=str(session.agent_id),
+            agent_id=str(session.agent_id),
             user=user,
             llm_client=llm_client,
             memory_service=memory_service,

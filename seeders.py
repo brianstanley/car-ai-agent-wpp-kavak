@@ -16,9 +16,8 @@ from kavak_chatbot.prompts.prompt_manager import prompt_manager
 
 logger = logging.getLogger(__name__)
 
-# Agent ID from environment variable
-DEFAULT_KAVAK_AGENT_ID = os.getenv("DEFAULT_KAVAK_AGENT_ID", "22222222-2222-2222-2222-222222222222")
-
+DEFAULT_KAVAK_AGENT_ID = os.getenv("DEFAULT_KAVAK_AGENT_ID")
+DEFAULT_DEMO_PHONE_NUMBER = os.getenv("DEFAULT_DEMO_PHONE_NUMBER")
 
 class DatabaseSeeder:
     def __init__(self):
@@ -42,7 +41,7 @@ class DatabaseSeeder:
                     persona_data = cursor.fetchone()
 
                     if persona_data is not None:
-                        print("✅ Car sales persona already exists")
+                        logger.info("✅ Car sales persona already exists")
                         return Persona(
                             id=persona_data['id'],
                             name=persona_data['name'],
@@ -53,7 +52,7 @@ class DatabaseSeeder:
 
                     # Generate new UUID for persona
                     persona_id = str(uuid4())
-                    
+
                     # Create new persona with generated ID
                     cursor.execute("""
                         INSERT INTO personas (id, name, role, goals, background)
@@ -68,7 +67,7 @@ class DatabaseSeeder:
                     ))
                     persona_data = cursor.fetchone()
                     conn.commit()
-                    print(f"✅ Car sales persona created successfully with ID: {persona_id}")
+                    logger.info(f"✅ Car sales persona created successfully with ID: {persona_id}")
                     return Persona(
                         id=persona_data['id'],
                         name=persona_data['name'],
@@ -78,7 +77,7 @@ class DatabaseSeeder:
                     )
 
         except Exception as e:
-            print(f"❌ Error creating car sales persona: {e}")
+            logger.info(f"❌ Error creating car sales persona: {e}")
             raise
 
     def create_car_sales_agent(self) -> Agent:
@@ -98,7 +97,7 @@ class DatabaseSeeder:
                     agent_data = cursor.fetchone()
 
                     if agent_data:
-                        print("✅ Car sales agent already exists")
+                        logger.info("✅ Car sales agent already exists")
                         return Agent(
                             id=agent_data['id'],
                             instruction=agent_data['instruction'],
@@ -122,7 +121,7 @@ class DatabaseSeeder:
                     ))
                     agent_data = cursor.fetchone()
                     conn.commit()
-                    print(f"✅ Car sales agent created successfully with ID: {DEFAULT_KAVAK_AGENT_ID}")
+                    logger.info(f"Car sales agent created successfully with ID: {DEFAULT_KAVAK_AGENT_ID}")
                     return Agent(
                         id=agent_data['id'],
                         instruction=agent_data['instruction'],
@@ -132,7 +131,7 @@ class DatabaseSeeder:
                     )
 
         except Exception as e:
-            print(f"❌ Error creating car sales agent: {e}")
+            logger.info(f"❌ Error creating car sales agent: {e}")
             raise
 
     def create_test_user(self) -> dict:
@@ -143,17 +142,17 @@ class DatabaseSeeder:
                     # Check by phone_number first
                     cursor.execute(
                         "SELECT id, phone_number FROM users WHERE phone_number = %s",
-                        ("1111",)
+                        (DEFAULT_DEMO_PHONE_NUMBER,)
                     )
                     existing_user = cursor.fetchone()
 
                     if existing_user:
-                        print("✅ Test user already exists")
+                        logger.info("✅ Test user already exists")
                         return existing_user
                     else:
                         # Generate new UUID for user
                         user_id = str(uuid4())
-                        
+
                         # Create new user with generated ID
                         cursor.execute("""
                             INSERT INTO users (id, phone_number)
@@ -162,33 +161,33 @@ class DatabaseSeeder:
                         """, (user_id, "1111"))
                         user = cursor.fetchone()
                         conn.commit()
-                        print(f"✅ Test user created successfully with ID: {user_id}")
+                        logger.info(f"✅ Test user created successfully with ID: {user_id}")
                         return user
 
         except Exception as e:
-            print(f"❌ Error creating test user: {e}")
+            logger.info(f"❌ Error creating test user: {e}")
             raise
 
 
 
     def run_seeders(self):
         """Run all seeders."""
-        print("🌱 Running database seeders...")
-        print("=" * 50)
+        logger.info("🌱 Running database seeders...")
+        logger.info("=" * 50)
         try:
             agent = self.create_car_sales_agent()
             user = self.create_test_user()
 
-            print("\n📊 Seeder Results:")
-            print(f"  - Agent ID:            {agent.id}")
-            print(f"  - User ID:             {user['id']}")
-            print(f"  - Application Mode:    {agent.application_mode}")
-            print(f"  - Persona ID:          {agent.persona_id}")
-            print("\n🎉 All seeders completed successfully!")
+            logger.info("\n📊 Seeder Results:")
+            logger.info(f"  - Agent ID:            {agent.id}")
+            logger.info(f"  - User ID:             {user['id']}")
+            logger.info(f"  - Application Mode:    {agent.application_mode}")
+            logger.info(f"  - Persona ID:          {agent.persona_id}")
+            logger.info("\n🎉 All seeders completed successfully!")
             return agent
 
         except Exception as e:
-            print(f"❌ Seeder failed: {e}")
+            logger.info(f"❌ Seeder failed: {e}")
             raise
 
 
@@ -198,7 +197,7 @@ def main():
         seeder = DatabaseSeeder()
         return seeder.run_seeders()
     except Exception as e:
-        print(f"❌ Failed to run seeders: {e}")
+        logger.info(f"❌ Failed to run seeders: {e}")
         return None
 
 

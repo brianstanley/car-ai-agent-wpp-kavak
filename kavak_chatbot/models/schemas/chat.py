@@ -4,11 +4,11 @@ Chat session and message schemas.
 
 from typing import List, Optional
 from pydantic import BaseModel
-from datetime import datetime
 
+from .user import User
+from .chat_session import ChatSession
 
 class ChatSessionResponse(BaseModel):
-    """Response schema for chat session."""
     id: str
     user_id: str
     agent_id: Optional[str] = None
@@ -17,13 +17,11 @@ class ChatSessionResponse(BaseModel):
 
 
 class ChatSessionCreateRequest(BaseModel):
-    """Request schema for creating a chat session."""
     phone_number: str
     agent_id: Optional[str] = None
 
 
 class MessageResponse(BaseModel):
-    """Response schema for chat message."""
     id: str
     role: str
     content: str
@@ -31,7 +29,6 @@ class MessageResponse(BaseModel):
 
 
 class SessionStatsResponse(BaseModel):
-    """Response schema for session statistics."""
     total_messages: int
     user_messages: int
     assistant_messages: int
@@ -41,7 +38,13 @@ class SessionStatsResponse(BaseModel):
 
 
 class SummaryResponse(BaseModel):
-    """Response schema for session summary."""
     id: str
     text: str
-    created_at: str 
+    created_at: str
+
+
+class InitializeChatResponse(BaseModel):
+    user: User
+    session: ChatSession
+    session_type: str
+    phone_number: str

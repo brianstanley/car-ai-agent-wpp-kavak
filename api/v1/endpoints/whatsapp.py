@@ -19,61 +19,40 @@ logger = logging.getLogger(__name__)
 TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
 TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
 TWILIO_WHATSAPP_PHONE_NUMBER = os.getenv("TWILIO_WHATSAPP_NUMBER")
-DEFAULT_KAVAK_AGENT_ID = os.getenv("DEFAULT_KAVAK_AGENT_ID", "22222222-2222-2222-2222-222222222222")
+DEFAULT_KAVAK_AGENT_ID = os.getenv("DEFAULT_KAVAK_AGENT_ID")
 
 router = APIRouter(prefix="/whatsapp", tags=["WhatsApp"])
 
 def parse_whatsapp_message(body: str, from_number: str) -> tuple[str, str]:
-    """
-    Parse WhatsApp message to extract user input and phone number.
-
-    Args:
-        body: The message body from WhatsApp
-        from_number: The sender's phone number
-
-    Returns:
-        tuple: (user_input, phone_number)
-    """
-    # Remove 'whatsapp:' prefix if present
     phone_number = from_number.replace('whatsapp:', '')
 
-    # Clean the phone number (remove any non-digit characters except +)
     phone_number = ''.join(c for c in phone_number if c.isdigit() or c == '+')
 
-    # If no country code, assume it's a Mexican number
     if not phone_number.startswith('+'):
         phone_number = '+52' + phone_number
 
-    # Return the phone number without whatsapp: prefix (respond function will add it)
     return body.strip(), phone_number
 
 
 def respond(to_number: str, message: str) -> None:
-    """Send a message via Twilio WhatsApp"""
     try:
-        # Ensure both numbers are in WhatsApp format
         if not to_number.startswith('whatsapp:'):
             to_number = f"whatsapp:{to_number}"
 
-        # Ensure from number is in WhatsApp format
         if not TWILIO_WHATSAPP_PHONE_NUMBER:
             raise ValueError("TWILIO_WHATSAPP_PHONE_NUMBER environment variable is not set")
 
-        # Make sure the from number has the whatsapp: prefix
         if not TWILIO_WHATSAPP_PHONE_NUMBER.startswith('whatsapp:'):
             from_whatsapp_number = f"whatsapp:{TWILIO_WHATSAPP_PHONE_NUMBER}"
         else:
             from_whatsapp_number = TWILIO_WHATSAPP_PHONE_NUMBER
 
-        # Log configuration for debugging
         logger.info(f"Twilio Account SID: {TWILIO_ACCOUNT_SID[:10] if TWILIO_ACCOUNT_SID else 'None'}...")
         logger.info(f"From WhatsApp Number: {from_whatsapp_number}")
         logger.info(f"To WhatsApp Number: {to_number}")
 
-        # Create Twilio client
         twilio_client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
 
-        # Send the message
         message_obj = twilio_client.messages.create(
             body=message,
             from_=from_whatsapp_number,
@@ -96,9 +75,6 @@ async def whatsapp_webhook(
     Body: str = Form(...),
     From: str = Form(...)
 ) -> JSONResponse:
-    """
-    WhatsApp webhook endpoint to handle incoming messages.
-    """
     try:
         logger.info(f'WhatsApp endpoint triggered...')
         logger.info(f'Request: {request}')
@@ -120,10 +96,9 @@ async def whatsapp_webhook(
         memory_service = MemoryService(llm_client=llm_client)
         prompt_builder = PromptBuilder()
 
-        #Create or get existing chat session
-        user = user_service.get_or_create_user(phone_number)
         session_info = chat_service.initialize_chat(phone_number, UUID(DEFAULT_KAVAK_AGENT_ID))
-        chat_session_id = str(session_info['session'].id)
+        user = session_info.user
+        chat_session_id = str(session_info.session.id)
 
         logger.info(f'User: {user.phone_number} (ID: {user.id})')
         logger.info(f'Session: {chat_session_id}')
@@ -136,12 +111,11 @@ async def whatsapp_webhook(
                 status_code=500
             )
 
-        # 6) Initialize AgentService
         agent = AgentService(
             persona=persona,
             instruction=instruction,
             model="gpt-4o",
-            memory_agent_i=DEFAULT_KAVAK_AGENT_ID,
+            agent_id=DEFAULT_KAVAK_AGENT_ID,
             user=user,
             llm_client=llm_client,
             memory_service=memory_service,
@@ -150,26 +124,22 @@ async def whatsapp_webhook(
             prompt_builder=prompt_builder
         )
 
-        # 7) Run the agent and get response
         logger.info(f'Running agent with input: {user_input}')
         response = agent.run(user_input, chat_session_id)
         logger.info(f'Agent response: {response}')
 
-        # 8) Send response back to WhatsApp
         try:
             respond(phone_number, response)
             logger.info(f'Response sent to WhatsApp: {phone_number}')
         except Exception as e:
             logger.error(f'Failed to send WhatsApp response: {e}')
-            # Still return success but log the error
 
-        # Return the response
         return JSONResponse(
             content={
                 "success": True,
                 "response": response,
                 "session_id": chat_session_id,
-                "user_id": str(user.id)
+                "user_id": str(session_info.user.id)
             }
         )
 

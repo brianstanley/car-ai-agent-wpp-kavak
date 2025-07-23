@@ -41,8 +41,8 @@ class AgentService:
         instruction,
         user,
         model: str = AgentConfig.DEFAULT_MODEL,
-        memory_agent_i=None,
         *,
+        agent_id: str,
         llm_client: LLMClientProtocol = None,
         memory_service: Optional[MemoryService] = None,
         chat_service: Optional[ChatService] = None,
@@ -55,7 +55,7 @@ class AgentService:
             llm_client, memory_service, chat_service,
             user_service, session_service, prompt_builder
         )
-        self._initialize_configuration(model, persona, instruction, memory_agent_i, user)
+        self._initialize_configuration(model, persona, instruction, agent_id, user)
         self._initialize_tools()
 
     def _validate_environment(self) -> None:
@@ -85,13 +85,13 @@ class AgentService:
         model: str,
         persona,
         instruction,
-        memory_agent_i,
+        agent_id,
         user
     ) -> None:
         self.model = model
         self.persona = persona
         self.instruction = instruction
-        self.memory_agent_i = memory_agent_i
+        self.agent_id = agent_id
         self.user = user
 
     def _initialize_tools(self) -> None:
