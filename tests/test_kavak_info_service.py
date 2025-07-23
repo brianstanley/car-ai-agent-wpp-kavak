@@ -1,12 +1,13 @@
 import unittest
 from unittest.mock import patch, MagicMock
-from services.kavak_info_service import KavakInfoService, KavakInfoServiceError
+from kavak_chatbot.services import KavakInfoService
+
 
 class TestKavakInfoService(unittest.TestCase):
     def setUp(self):
         self.service = KavakInfoService(embedding_model="test-model")
 
-    @patch("services.kavak_info_service.OpenAI")
+    @patch("kavak_chatbot.services.kavak_info_service.OpenAI")
     def test_get_embedding_success(self, mock_openai):
         mock_client = MagicMock()
         mock_response = MagicMock()
@@ -20,7 +21,7 @@ class TestKavakInfoService(unittest.TestCase):
         mock_client.embeddings.create.assert_called_once_with(model="test-model", input="test text")
 
     @patch.object(KavakInfoService, "get_embedding", return_value=[0.1, 0.2, 0.3])
-    @patch("services.kavak_info_service.SessionLocal")
+    @patch("kavak_chatbot.services.kavak_info_service.SessionLocal")
     def test_create_kavak_info_with_embedding_success(self, mock_sessionlocal, mock_get_embedding):
         mock_session = MagicMock()
         mock_sessionlocal.return_value = mock_session
@@ -37,7 +38,7 @@ class TestKavakInfoService(unittest.TestCase):
         mock_close.assert_called()
 
     @patch.object(KavakInfoService, "get_embedding", return_value=[0.1, 0.2, 0.3])
-    @patch("services.kavak_info_service.SessionLocal")
+    @patch("kavak_chatbot.services.kavak_info_service.SessionLocal")
     def test_search_similar_success(self, mock_sessionlocal, mock_get_embedding):
         mock_session = MagicMock()
         mock_sessionlocal.return_value = mock_session
@@ -51,7 +52,7 @@ class TestKavakInfoService(unittest.TestCase):
         self.assertEqual(results, ["result1", "result2"])
         mock_session.close.assert_called()
 
-    @patch("services.kavak_info_service.OpenAI")
+    @patch("kavak_chatbot.services.kavak_info_service.OpenAI")
     def test_get_embedding_error(self, mock_openai):
         mock_client = MagicMock()
         mock_client.embeddings.create.side_effect = Exception("fail")
@@ -61,7 +62,7 @@ class TestKavakInfoService(unittest.TestCase):
             service.get_embedding("fail")
 
     @patch.object(KavakInfoService, "get_embedding", side_effect=Exception("fail"))
-    @patch("services.kavak_info_service.SessionLocal")
+    @patch("kavak_chatbot.services.kavak_info_service.SessionLocal")
     def test_create_kavak_info_with_embedding_error(self, mock_sessionlocal, mock_get_embedding):
         mock_session = MagicMock()
         mock_sessionlocal.return_value = mock_session
@@ -72,4 +73,4 @@ class TestKavakInfoService(unittest.TestCase):
         mock_session.close.assert_called()
 
 if __name__ == "__main__":
-    unittest.main() 
+    unittest.main()

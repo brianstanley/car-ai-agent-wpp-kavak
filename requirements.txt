@@ -14,3 +14,4 @@ uvicorn[standard]
 python-multipart==0.0.20
 twilio==9.6.5
 pgvector==0.4.1
+click==8.1.7

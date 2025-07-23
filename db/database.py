@@ -1,11 +1,13 @@
 from sqlalchemy import text, inspect
 from sqlalchemy.orm import Session
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 import logging
 
 from db.session import engine, SessionLocal
-logging.basicConfig(level=logging.INFO)
+
+
 logger = logging.getLogger(__name__)
+
 
 class DatabaseManager:
     """Database manager for PostgreSQL with pgvector support using SQLAlchemy."""
@@ -60,7 +62,6 @@ class DatabaseManager:
             inspector = inspect(self.engine)
             columns = inspector.get_columns(table_name)
 
-            # Convert SQLAlchemy column info to our expected format
             column_info = []
             for col in columns:
                 column_info.append({
@@ -93,5 +94,4 @@ class DatabaseManager:
             return False
 
     def close(self):
-        #TODO implement close method to clean up resources
         logger.info("DatabaseManager instance closed")

@@ -1,34 +1,25 @@
-#!/usr/bin/env python3
 """
 Chat interactivo usando MemAgentService para gestionar la conversación.
 """
 
-from dotenv import load_dotenv
-from typing import Tuple, Optional
-from uuid import UUID
+import logging
 import os
 
-from db.session import SessionLocal
-from models.db.agent import AgentDB
-from models.db.persona import PersonaDB
-from models import Persona
-from services.prompt_builder import PromptBuilder
-from services.user_service import UserService
-from services.chat_service import ChatService
-from services.memory_service import MemoryService
-from services.agent_service import AgentService
-from services.llm_openai_adapter import OpenAIClientAdapter
-from utils.tokenizer import OpenAITokenizerWrapper, truncate_text_to_max_tokens
+from dotenv import load_dotenv
 
-# Cargar variables de entorno
+from kavak_chatbot.services import UserService, ChatService, MemoryService, AgentService
+from kavak_chatbot.services.llm_openai_adapter import OpenAIClientAdapter
+from kavak_chatbot.services.prompt_builder import PromptBuilder
+from kavak_chatbot.utils import OpenAITokenizerWrapper, truncate_text_to_max_tokens
+from logging_config import setup_logging
+
 load_dotenv()
-
-
-# Remove the duplicate function - use AgentService.fetch_memory_agent_data instead
+setup_logging()
+logger = logging.getLogger(__name__)
 
 
 def main():
-    print("🤖 Chat con MemAgent")
+    print("🤖 Chat con Agente de Kavak: carlos")
     print("=" * 60)
     print("Type your messages and press Enter to chat.")
     print("Commands:")
@@ -47,7 +38,7 @@ def main():
     user = user_service.get_or_create_user("1111")
     session_info = chat_service.initialize_chat("1111")
     chat_session_id = str(session_info['session'].id)
-    memory_agent_id = "22222222-2222-2222-2222-222222222222"  # ID fijo de MemAgent del seeder
+    memory_agent_id = os.getenv("DEFAULT_KAVAK_AGENT_ID", "22222222-2222-2222-2222-222222222222")
 
     # Fetch persona and instruction for the memory agent
     persona, instruction = AgentService.fetch_memory_agent_data(memory_agent_id)
@@ -70,7 +61,7 @@ def main():
 
     print(f"👤 Usuario: {user.phone_number} (ID: {user.id})")
     print(f"💬 Sesión: {chat_session_id}")
-    print(f"🧠 MemAgent: {memory_agent_id}")
+    print(f"🧠 Bot ID: {memory_agent_id}")
 
     while True:
         try:
@@ -89,9 +80,8 @@ def main():
                 user_input = truncate_text_to_max_tokens(user_input, MAX_USER_QUERY_TOKENS, model_name="cl100k_base")
                 print(f"Tu mensaje fue muy largo y ha sido truncado a los primeros {MAX_USER_QUERY_TOKENS} tokens.")
 
-            print("🤖 Assistant: ", end="", flush=True)
             response = agent.run(user_input, chat_session_id)
-            print(f"Agente: ", response)
+            print(f"🤖 Assistant: {response}")
         except KeyboardInterrupt:
             print("\n\n👋 Chat interrupted. Goodbye!")
             break

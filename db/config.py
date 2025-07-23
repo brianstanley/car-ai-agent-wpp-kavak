@@ -6,13 +6,8 @@ load_dotenv()
 class Config:
     """Configuration class for the chatbot memory system."""
 
-    # Database configuration
     DATABASE_URL = os.getenv("DATABASE_URL")
-
-    # OpenAI configuration
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-
-    # Memory configuration
     TOKEN_THRESHOLD = int(os.getenv("TOKEN_THRESHOLD", "4000"))
 
     @classmethod

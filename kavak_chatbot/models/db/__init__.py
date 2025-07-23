@@ -1,13 +1,13 @@
 """
     Module for database models.
 """
-from models.db.chat_session import ChatSessionDB
-from models.db.conversation_memory import ConversationMemoryDB
-from models.db.summary import SummaryDB
-from models.db.user import UserDB
-from models.db.agent import AgentDB
-from models.db.persona import PersonaDB
-from models.db.kavak_info import KavakInfoDB
+from kavak_chatbot.models.db.chat_session import ChatSessionDB
+from kavak_chatbot.models.db.conversation_memory import ConversationMemoryDB
+from kavak_chatbot.models.db.summary import SummaryDB
+from kavak_chatbot.models.db.user import UserDB
+from kavak_chatbot.models.db.agent import AgentDB
+from kavak_chatbot.models.db.persona import PersonaDB
+from kavak_chatbot.models.db.kavak_info import KavakInfoDB
 from sqlalchemy import Column, Integer, String, Numeric, Boolean, Text
 from pgvector.sqlalchemy import Vector
 from db.session import Base

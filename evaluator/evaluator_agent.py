@@ -1,7 +1,6 @@
-import os
-from openai import OpenAI
-from services.llm_protocol import LLMClientProtocol
-from prompts.prompt_manager import prompt_manager
+from kavak_chatbot.prompts.prompt_manager import prompt_manager
+from kavak_chatbot.services.llm_protocol import LLMClientProtocol
+
 
 class EvaluatorAgent:
     def __init__(self, model="gpt-3.5-turbo", llm_client: LLMClientProtocol = None):

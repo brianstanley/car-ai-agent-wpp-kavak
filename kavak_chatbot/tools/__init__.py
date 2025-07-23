@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Tools package for agent service.
 """
@@ -13,4 +12,4 @@ __all__ = [
     "CatalogSearchTool",
     "CarFinancialTool",
     "KavakInfoSearchTool"
-] 
+]

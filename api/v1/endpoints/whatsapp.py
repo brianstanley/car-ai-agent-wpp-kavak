@@ -4,25 +4,22 @@ WhatsApp endpoints for handling webhooks and messaging.
 
 import os
 import logging
-from fastapi import APIRouter, Request, Form, HTTPException
+from fastapi import APIRouter, Request, Form
 from fastapi.responses import JSONResponse
-from openai import OpenAI
 from twilio.rest import Client
+from uuid import UUID
 
-from services.user_service import UserService
-from services.chat_service import ChatService
-from services.memory_service import MemoryService
-from services.agent_service import AgentService
-from services.prompt_builder import PromptBuilder
-from services.llm_openai_adapter import OpenAIClientAdapter
-from utils.tokenizer import OpenAITokenizerWrapper, truncate_text_to_max_tokens
+from kavak_chatbot.services import UserService, ChatService, MemoryService, AgentService
+from kavak_chatbot.services.llm_openai_adapter import OpenAIClientAdapter
+from kavak_chatbot.services.prompt_builder import PromptBuilder
+from kavak_chatbot.utils import OpenAITokenizerWrapper, truncate_text_to_max_tokens
 
 logger = logging.getLogger(__name__)
 
 TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
 TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
 TWILIO_WHATSAPP_PHONE_NUMBER = os.getenv("TWILIO_WHATSAPP_NUMBER")
-MEMORY_AGENT_ID = "22222222-2222-2222-2222-222222222222"
+DEFAULT_KAVAK_AGENT_ID = os.getenv("DEFAULT_KAVAK_AGENT_ID", "22222222-2222-2222-2222-222222222222")
 
 router = APIRouter(prefix="/whatsapp", tags=["WhatsApp"])
 
@@ -125,13 +122,13 @@ async def whatsapp_webhook(
 
         #Create or get existing chat session
         user = user_service.get_or_create_user(phone_number)
-        session_info = chat_service.initialize_chat(phone_number)
+        session_info = chat_service.initialize_chat(phone_number, UUID(DEFAULT_KAVAK_AGENT_ID))
         chat_session_id = str(session_info['session'].id)
 
         logger.info(f'User: {user.phone_number} (ID: {user.id})')
         logger.info(f'Session: {chat_session_id}')
 
-        persona, instruction = AgentService.fetch_memory_agent_data(MEMORY_AGENT_ID)
+        persona, instruction = AgentService.fetch_memory_agent_data(DEFAULT_KAVAK_AGENT_ID)
         if not instruction:
             logger.error("Could not fetch memory agent data")
             return JSONResponse(
@@ -144,7 +141,7 @@ async def whatsapp_webhook(
             persona=persona,
             instruction=instruction,
             model="gpt-4o",
-            memory_agent_i=MEMORY_AGENT_ID,
+            memory_agent_i=DEFAULT_KAVAK_AGENT_ID,
             user=user,
             llm_client=llm_client,
             memory_service=memory_service,

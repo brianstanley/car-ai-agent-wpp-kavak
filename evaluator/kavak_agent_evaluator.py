@@ -1,15 +1,15 @@
-import sys
 import os
 import json
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from services.user_service import UserService
-from services.chat_service import ChatService
-from services.memory_service import MemoryService
-from services.prompt_builder import PromptBuilder
-from evaluator.evaluator_agent import EvaluatorAgent
-from services.llm_openai_adapter import OpenAIClientAdapter
+import logging
 
-if __name__ == "__main__":
+from kavak_chatbot.services.llm_openai_adapter import OpenAIClientAdapter
+from kavak_chatbot.services.prompt_builder import PromptBuilder
+from kavak_chatbot.services import UserService, ChatService, MemoryService
+from evaluator.evaluator_agent import EvaluatorAgent
+
+logger = logging.getLogger(__name__)
+
+def run_kavak_evaluator():
     llm_client = OpenAIClientAdapter()
     user_service = UserService()
     chat_service = ChatService()
@@ -19,9 +19,9 @@ if __name__ == "__main__":
     user = user_service.get_or_create_user("1111")
     session_info = chat_service.initialize_chat("1111")
     chat_session_id = str(session_info['session'].id)
-    memory_agent_id = "22222222-2222-2222-2222-222222222222"
+    memory_agent_id = os.getenv("DEFAULT_KAVAK_AGENT_ID", "22222222-2222-2222-2222-222222222222")
 
-    from services.agent_service import AgentService
+    from kavak_chatbot.services import AgentService
     persona, instruction = AgentService.fetch_memory_agent_data(memory_agent_id)
     agent = AgentService(
         persona=persona,
@@ -40,13 +40,13 @@ if __name__ == "__main__":
     with open(test_cases_path, "r") as f:
         test_cases = json.load(f)
 
-    evaluator = EvaluatorAgent()
+    evaluator = EvaluatorAgent(llm_client=llm_client)
 
     for idx, case in enumerate(test_cases):
         user_query = case["user_query"]
         expected = case["expected"]
         expected_tools = case["expected_tools"]
-        print(f"\nCaso {idx+1}: {user_query}")
+        logger.info(f"Caso {idx+1}: {user_query}")
         eval_data = agent.evaluate(user_query, chat_session_id)
         agent_response = eval_data["agent_response"]
         tools_invoked = eval_data["tools_invoked"]
@@ -57,5 +57,5 @@ if __name__ == "__main__":
             expected=expected,
             expected_tools=expected_tools
         )
-        print("Análisis del evaluador:")
-        print(analysis)
+        logger.info("Análisis del evaluador:")
+        logger.info(analysis)

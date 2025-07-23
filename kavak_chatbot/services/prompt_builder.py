@@ -1,29 +1,20 @@
-#!/usr/bin/env python3
 """
 Prompt Builder Service for constructing prompts with fluent interface.
 """
 from datetime import datetime
-from typing import List, Dict, Any, Optional
-from uuid import UUID
-from services.memory_service import MemoryService
+from typing import Optional
+
+from kavak_chatbot.services.memory_service import MemoryService
 
 
 class PromptBuilder:
-    """Builder for constructing prompts with fluent interface."""
 
     def __init__(self, memory_service: Optional[MemoryService] = None):
-        """
-        Initialize the prompt builder.
-
-        Args:
-            memory_service: Memory service instance (injected)
-        """
         self.system_prompt = ""
         self.memory_service = memory_service or MemoryService()
         self._reset()
 
     def _reset(self):
-        """Reset builder state."""
         self.system_prompt = ""
         self.context_window = ""
         self.conversation_history = ""
@@ -32,19 +23,7 @@ class PromptBuilder:
         self.memory_id = None
 
     def add_system(self, persona, instruction: str) -> 'PromptBuilder':
-        """
-        Add system prompt component.
-
-        Args:
-            persona: The persona configuration
-            instruction: The instruction for the agent
-
-        Returns:
-            PromptBuilder: Self for chaining
-        """
         current_date = datetime.now().strftime("%Y-%m-%d")
-
-        # Build base prompt from persona and instruction
         prompt_base = ""
         if persona and instruction:
             persona_prompt = persona.generate_system_prompt_input()

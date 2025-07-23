@@ -20,6 +20,8 @@ A continuación presento los diagramas principales que describen la arquitectura
 
 - Docker
 - Docker Compose
+- Python 3.8+ (para desarrollo local)
+- Click (incluido en requirements.txt)
 
 ## Instalación
 
@@ -50,39 +52,192 @@ docker-compose up --build -d
 Ejecuta los siguientes comandos dentro del contenedor de la API
 
 ```bash
-docker-compose exec api python setup.py
+# Crear tablas de la base de datos
+docker-compose exec api python setup.py database
 
+# Cargar datos iniciales (agente comercial de ventas)
 docker-compose exec api python seeders.py
 ```
-Esto generara un agente comercial de ventas de Kavak.
 
-Luego para generar los embeddings de los autos y cargar la información de Kavak:
+### 5. Generar embeddings y cargar información de Kavak
+
+Para generar los embeddings de los autos y cargar la información de Kavak:
 
 ```bash
-docker-compose exec api python scripts/generate_car_embeddings.py
+# Generar embeddings de autos desde CSV
+docker-compose exec api python setup.py generate-car-embeddings
 
-docker-compose exec api python scripts/kavak_info_ingestion.py
+# Extraer información de Kavak desde el sitio web
+docker-compose exec api python setup.py kavak-info-ingestion
 ```
 
-### 5. Acceso a la API
+### 6. Acceso a la API
 
 La API estará disponible en: http://localhost:8000/api/v1
 
-- Documentación Swagger: http://localhost:8000/docs
-- Documentación ReDoc: http://localhost:8000/redoc
-- Health Check: http://localhost:8000/v1/health
+- **Documentación Swagger**: http://localhost:8000/docs
+- **Documentación ReDoc**: http://localhost:8000/redoc
+- **Health Check**: http://localhost:8000/v1/health
+- **Información de la API**: http://localhost:8000/
 
-### 6. (Opcional) Recrear la base de datos y el contenedor
+## Documentación de la API
 
-Si necesitas eliminar y volver a crear la base de datos y el contenedor (por ejemplo, para un entorno limpio), ejecuta:
+### Endpoints Principales
 
-```bash
-docker-compose exec api python setup.py --recreate
+> **Nota**: La API incluye endpoints para gestión completa de sesiones, incluyendo listar todas las sesiones, obtener mensajes específicos y manejar webhooks de WhatsApp.
+
+#### 1. Enviar Mensaje al Agente
+**POST** `/api/v1/chat/send-message`
+
+Envía un mensaje al agente de Kavak y recibe una respuesta.
+
+**Ejemplo de Request:**
+```json
+{
+  "session_id": "fb91b153-86a0-4a17-818e-c44a4c91a4a7",
+  "message": "Hola, estoy buscando un auto usado"
+}
 ```
 
-Esto eliminará el contenedor y el volumen de la base de datos, y los creará nuevamente desde cero.
+**Ejemplo de Response:**
+```json
+{
+  "success": true,
+  "response": "¡Hola! Soy tu asistente de Kavak. Te ayudo a encontrar el auto perfecto. ¿Qué tipo de vehículo estás buscando?",
+  "session_id": "fb91b153-86a0-4a17-818e-c44a4c91a4a7",
+  "message_id": "msg_123456"
+}
+```
+
+#### 2. Webhook de WhatsApp
+**POST** `/api/v1/whatsapp/webhook`
+
+Endpoint para recibir mensajes de WhatsApp desde Twilio.
+
+**Ejemplo de Request (form-data):**
+```
+Body: "Hola, quiero comprar un auto"
+From: "whatsapp:+525512345678"
+```
+
+**Ejemplo de Response:**
+```json
+{
+  "status": "success",
+  "message": "Mensaje procesado correctamente"
+}
+```
+
+#### 3. Listar Todas las Sesiones
+**GET** `/api/v1/chat/sessions`
+
+Obtiene todas las sesiones de chat con paginación.
+
+**Ejemplo de Request:**
+```
+GET /api/v1/chat/sessions?limit=10&offset=0&include_ended=true
+```
+
+**Ejemplo de Response:**
+```json
+[
+  {
+    "id": "fb91b153-86a0-4a17-818e-c44a4c91a4a7",
+    "user_id": "33333333-3333-3333-3333-333333333333",
+    "agent_id": "22222222-2222-2222-2222-222222222222",
+    "started_at": "2024-01-15T10:30:00Z",
+    "ended_at": null
+  },
+  {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "user_id": "44444444-4444-4444-4444-444444444444",
+    "agent_id": "22222222-2222-2222-2222-222222222222",
+    "started_at": "2024-01-15T09:15:00Z",
+    "ended_at": "2024-01-15T10:00:00Z"
+  }
+]
+```
+
+#### 4. Obtener Mensajes de una Sesión
+**GET** `/api/v1/chat/sessions/{session_id}/messages`
+
+Obtiene todos los mensajes de una sesión de chat específica.
+
+**Ejemplo de Request:**
+```
+GET /api/v1/chat/sessions/fb91b153-86a0-4a17-818e-c44a4c91a4a7/messages
+```
+
+**Ejemplo de Response:**
+```json
+[
+  {
+    "id": "msg_1",
+    "session_id": "fb91b153-86a0-4a17-818e-c44a4c91a4a7",
+    "role": "user",
+    "content": "Hola, estoy buscando un auto usado",
+    "created_at": "2024-01-15T10:30:00Z"
+  },
+  {
+    "id": "msg_2",
+    "session_id": "fb91b153-86a0-4a17-818e-c44a4c91a4a7",
+    "role": "assistant",
+    "content": "¡Hola! Soy tu asistente de Kavak. Te ayudo a encontrar el auto perfecto.",
+    "created_at": "2024-01-15T10:30:05Z"
+  }
+]
+```
+
+### Documentación Completa
+
+Para ver la documentación completa de todos los endpoints disponibles:
+
+- **Swagger UI**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
+
+
+## Modo Interactivo: Ejecutar el Chat
+
+Para poder interactuar con el agente conversacional de Kavak ya sea para desarrollo o prueba se puede ejecutar de manera local usando el script `chat.py`.
+
+### ¿Cómo ejecutarlo?
+
+
+
+```bash
+docker-compose exec api python chat.py
+```
+
+Vas a ver un prompt donde puedes escribir mensajes y recibir respuestas del agente. Usa `/quit` o `/exit` para salir del chat.
+
+Esto eliminará todas las tablas y las creará nuevamente desde cero.
 
 ## Comandos útiles
+
+### Setup.py Commands
+
+El script `setup.py` ahora usa Click y proporciona varios comandos útiles:
+
+```bash
+# Ver todos los comandos disponibles
+docker-compose exec api python setup.py --help
+
+# Comandos de base de datos
+docker-compose exec api python setup.py database              # Crear tablas.
+docker-compose exec api python setup.py database --recreate  # Recrear todas las tablas.
+
+# Generar embeddings y datos
+docker-compose exec api python setup.py generate-car-embeddings  # Popular la tabla de autos.
+docker-compose exec api python setup.py kavak-info-ingestion     # Extraer info de Kavak y generar los embeddings correspondientes.
+
+# Ver ayuda específica de cada comando
+docker-compose exec api python setup.py database --help
+docker-compose exec api python setup.py generate-car-embeddings --help
+docker-compose exec api python setup.py kavak-info-ingestion --help
+```
+
+### Otros comandos útiles
+
 - Ejecutar seeders manualmente:
   ```bash
   docker-compose exec api python seeders.py
@@ -97,18 +252,4 @@ Si tenes problemas:
 3. Asegúrate de que el archivo `.env` esté correctamente configurado. 
 4. Revisa estar accediendo mediante el versionado v1 a la api.
 5. Verifica haber corrido los scripts de migración y generación de embeddings.
-
-## Modo Interactivo: Ejecutar el Chat
-
-Para poder interactuar con el agente conversacional de Kavak ya sea para desarrollo o prueba se puede ejecutar de manera local usando el script `chat.py`. 
-
-### ¿Cómo ejecutarlo?
-
-Asegúrate de tener las dependencias instaladas y las variables de entorno configuradas. Luego ejecuta:
-
-```bash
-python chat.py
-```
-
-Vas a ver un prompt donde puedes escribir mensajes y recibir respuestas del agente. Usa `/quit` o `/exit` para salir del chat.
 

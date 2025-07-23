@@ -1,4 +1,4 @@
-from services.llm_protocol import LLMClientProtocol
+from kavak_chatbot.services.llm_protocol import LLMClientProtocol
 from openai import OpenAI
 from typing import Any, List, Dict
 
@@ -10,4 +10,4 @@ class OpenAIClientAdapter(LLMClientProtocol):
         return self.client.chat.completions.create(model=model, messages=messages, **kwargs)
 
     def embedding(self, *, model: str, input: Any, **kwargs) -> Any:
-        return self.client.embeddings.create(model=model, input=input, **kwargs) 
+        return self.client.embeddings.create(model=model, input=input, **kwargs)

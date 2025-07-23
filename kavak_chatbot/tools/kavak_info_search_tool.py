@@ -1,15 +1,12 @@
-#!/usr/bin/env python3
-"""
-Tool for semantic search of Kavak information.
-"""
-
 from typing import Dict, Any, List, Optional
-from openai import OpenAI
 from enum import Enum
+import logging
 
-from services.kavak_info_service import KavakInfoService
-from prompts.prompt_manager import prompt_manager
-from services.llm_protocol import LLMClientProtocol
+from kavak_chatbot.services.kavak_info_service import KavakInfoService
+from kavak_chatbot.prompts.prompt_manager import prompt_manager
+from kavak_chatbot.services.llm_protocol import LLMClientProtocol
+
+logger = logging.getLogger(__name__)
 
 
 MAX_RESULTS_DEFAULT = 3
@@ -21,22 +18,10 @@ class KavakInfoSearchError(str, Enum):
 
 class KavakInfoSearchTool:
     def __init__(self, llm_client: Optional[LLMClientProtocol] = None):
-        """
-        Initialize the tool.
-
-        Args:
-            llm_client: LLM client for summarization
-        """
         self.llm_client = llm_client
         self.kavak_info_service = KavakInfoService()
 
     def get_tool_definition(self) -> Dict[str, Any]:
-        """
-        Get the tool definition for OpenAI API.
-
-        Returns:
-            Dict containing tool definition
-        """
         return {
             "type": "function",
             "function": {
@@ -77,17 +62,6 @@ class KavakInfoSearchTool:
         }
 
     def _summarize_results(self, results: List[Any], query: str, model: str) -> str:
-        """
-        Summarize search results focusing on the client's query and the synthesized answer.
-
-        Args:
-            results: List of search results
-            query: Original client query
-            model: OpenAI model to use for summarization
-
-        Returns:
-            str: Focused summary with the key points and direct response
-        """
         snippets = [res.text for res in results[:3]]
         content = "\n".join(snippets)
         summary_prompt = prompt_manager.get_kavak_info_summary_prompt(query, content)
@@ -105,22 +79,13 @@ class KavakInfoSearchTool:
             return response.choices[0].message.content.strip()
 
         except Exception as e:
-            print(KavakInfoSearchError.SUMMARIZATION.value.format(error=e))
+            logger.error(KavakInfoSearchError.SUMMARIZATION.value.format(error=e))
             # Fallback: show query and up to two result snippets
             fallback = [res.text for res in results[:2]]
             items = "\n".join(f"- {text}" for text in fallback)
             return f"Consulta: \"{query}\"\nInformación encontrada:\n{items}"
 
     def execute(self, args: Dict[str, Any]) -> str:
-        """
-        Execute the Kavak info search tool.
-
-        Args:
-            args: Tool arguments containing 'query' and optional 'max_results'
-
-        Returns:
-            str: Summarized search results
-        """
         try:
             query = args.get('query', '')
             max_results = args.get('max_results', MAX_RESULTS_DEFAULT)
@@ -128,11 +93,11 @@ class KavakInfoSearchTool:
             if not query:
                 return KavakInfoSearchError.MISSING_QUERY.value
 
-            print(f"TOOL CALL- Buscando información de Kavak: '{query}'")
+            logger.info(f"TOOL CALL- Buscando información de Kavak: '{query}'")
             results = self.kavak_info_service.search_similar(query, limit=max_results) # use semantic search:)
 
             if not results:
-                print(KavakInfoSearchError.NOT_FOUND.value.format(query=query))
+                logger.warning(KavakInfoSearchError.NOT_FOUND.value.format(query=query))
                 return KavakInfoSearchError.NOT_FOUND.value.format(query=query)
 
             summarized_response = self._summarize_results(results, query, model="gpt-4o-mini")
@@ -140,5 +105,5 @@ class KavakInfoSearchTool:
 
         except Exception as e:
             error_msg = KavakInfoSearchError.SEARCH.value.format(error=e)
-            print(error_msg)
+            logger.error(error_msg)
             return error_msg
