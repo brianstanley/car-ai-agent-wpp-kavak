@@ -2,11 +2,14 @@
 Main manager for chat session initialization and management.
 """
 
+import logging
 from typing import Optional, Dict, Any
 from uuid import UUID
 
 from kavak_chatbot.services.user_service import UserService
 from kavak_chatbot.services.session_service import SessionService
+
+logger = logging.getLogger(__name__)
 
 
 class ChatService:
@@ -19,15 +22,15 @@ class ChatService:
     def initialize_chat(self, phone_number: str = "1111", agent_id: Optional[UUID] = None) -> Dict[str, Any]:
         """Initialize or get existing chat session for a user."""
         try:
-            print(f"Initializing chat for phone: {phone_number}")
+            logger.info(f"Initializing chat for phone: {phone_number}")
 
             # Get or create user
             user = self.user_service.get_or_create_user(phone_number)
-            print(f"User: {user.phone_number} (ID: {user.id})")
+            logger.info(f"User: {user.phone_number} (ID: {user.id})")
 
             # Get or create session
             session = self.session_service.get_or_create_session(user.id, agent_id)
-            print(f"Session: {session.id} (Started: {session.started_at})")
+            logger.info(f"Session: {session.id} (Started: {session.started_at})")
 
             # Determine session type
             session_type = "existing" if session.ended_at is None else "new"
@@ -40,7 +43,7 @@ class ChatService:
             }
 
         except Exception as e:
-            print(f"Error initializing chat: {e}")
+            logger.error(f"Error initializing chat: {e}")
             raise
 
     def end_chat_session(self, session_id: UUID) -> bool:
@@ -64,5 +67,5 @@ class ChatService:
             }
 
         except Exception as e:
-            print(f"Error getting user session: {e}")
+            logger.error(f"Error getting user session: {e}")
             raise

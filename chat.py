@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 def main():
-    print("🤖 Chat con MemAgent")
+    print("🤖 Chat con Agente de Kavak: carlos")
     print("=" * 60)
     print("Type your messages and press Enter to chat.")
     print("Commands:")
@@ -61,7 +61,7 @@ def main():
 
     print(f"👤 Usuario: {user.phone_number} (ID: {user.id})")
     print(f"💬 Sesión: {chat_session_id}")
-    print(f"🧠 MemAgent: {memory_agent_id}")
+    print(f"🧠 Bot ID: {memory_agent_id}")
 
     while True:
         try:
