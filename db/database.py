@@ -4,8 +4,12 @@ from typing import List, Dict, Any, Optional
 import logging
 
 from db.session import engine, SessionLocal
-from logging_config import setup_logging
 
+import sys
+import os
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from logging_config import setup_logging
 setup_logging()
 logger = logging.getLogger(__name__)
 
@@ -63,7 +67,6 @@ class DatabaseManager:
             inspector = inspect(self.engine)
             columns = inspector.get_columns(table_name)
 
-            # Convert SQLAlchemy column info to our expected format
             column_info = []
             for col in columns:
                 column_info.append({
@@ -96,5 +99,4 @@ class DatabaseManager:
             return False
 
     def close(self):
-        #TODO implement close method to clean up resources
         logger.info("DatabaseManager instance closed")
