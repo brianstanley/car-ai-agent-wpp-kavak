@@ -5,17 +5,13 @@ Seeders for creating test data in the database.
 import logging
 
 import psycopg2
-from dotenv import load_dotenv
 from psycopg2.extras import RealDictCursor
 
 from kavak_chatbot.models.schemas.agent import Agent
 from db.config import Config
 from kavak_chatbot.models import Persona
 from kavak_chatbot.prompts.prompt_manager import prompt_manager
-from logging_config import setup_logging
 
-load_dotenv()
-setup_logging()
 logger = logging.getLogger(__name__)
 
 # Fixed IDs for testing
@@ -25,8 +21,6 @@ TEST_USER_ID    = "33333333-3333-3333-3333-333333333333"
 
 
 class DatabaseSeeder:
-    """Seeder for creating test data."""
-
     def __init__(self):
         self.connection_string = Config.DATABASE_URL
 

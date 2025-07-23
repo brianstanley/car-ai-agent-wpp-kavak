@@ -22,17 +22,16 @@ import os
 from kavak_chatbot.utils import OpenAITokenizerWrapper, truncate_text_to_max_tokens
 import logging
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/chat", tags=["Chat"])
 
-
 class SendMessageRequest(BaseModel):
-    """Request schema for sending a message to the agent."""
     session_id: str
     message: str
 
 
 class SendMessageResponse(BaseModel):
-    """Response schema for agent message response."""
     success: bool
     response: str
     session_id: str
@@ -42,7 +41,6 @@ class SendMessageResponse(BaseModel):
 
 @router.post("/sessions", response_model=ChatSessionResponse)
 async def create_chat_session(session_data: ChatSessionCreateRequest) -> ChatSessionResponse:
-    """Create a new chat session."""
     try:
         chat_service = ChatService()
         session_info = chat_service.initialize_chat(session_data.phone_number)
@@ -61,7 +59,6 @@ async def create_chat_session(session_data: ChatSessionCreateRequest) -> ChatSes
 
 @router.get("/sessions/{session_id}", response_model=ChatSessionResponse)
 async def get_chat_session(session_id: str) -> ChatSessionResponse:
-    """Get a specific chat session."""
     try:
         from uuid import UUID
         session_service = SessionService()
@@ -85,7 +82,6 @@ async def get_chat_session(session_id: str) -> ChatSessionResponse:
 
 @router.put("/sessions/{session_id}/end")
 async def end_chat_session(session_id: str) -> Dict[str, str]:
-    """End a chat session."""
     try:
         chat_service = ChatService()
         success = chat_service.end_chat_session(UUID(session_id))
@@ -100,19 +96,16 @@ async def end_chat_session(session_id: str) -> Dict[str, str]:
 
 @router.get("/sessions/user/{phone_number}", response_model=List[ChatSessionResponse])
 async def get_user_chat_sessions(phone_number: str) -> List[ChatSessionResponse]:
-    """Get all chat sessions for a user by phone number."""
     try:
         from uuid import UUID
         from kavak_chatbot.services import UserService
 
-        # First get the user by phone number
         user_service = UserService()
         user = user_service.get_user_by_phone(phone_number)
 
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
-        # Then get all sessions for that user
         session_service = SessionService()
         sessions = session_service.get_user_sessions(UUID(str(user.id)))
 
@@ -132,7 +125,6 @@ async def get_user_chat_sessions(phone_number: str) -> List[ChatSessionResponse]
 
 @router.get("/sessions/user-id/{user_id}", response_model=List[ChatSessionResponse])
 async def get_user_chat_sessions_by_id(user_id: str) -> List[ChatSessionResponse]:
-    """Get all chat sessions for a user by user ID."""
     try:
         from uuid import UUID
         session_service = SessionService()
@@ -156,7 +148,6 @@ async def get_user_chat_sessions_by_id(user_id: str) -> List[ChatSessionResponse
 
 @router.get("/sessions/{session_id}/messages", response_model=List[MessageResponse])
 async def get_session_messages(session_id: str) -> List[MessageResponse]:
-    """Get all messages for a specific chat session."""
     try:
         from uuid import UUID
         memory_service = MemoryService()
@@ -179,7 +170,6 @@ async def get_session_messages(session_id: str) -> List[MessageResponse]:
 
 @router.get("/sessions/{session_id}/messages/last/{limit}", response_model=List[MessageResponse])
 async def get_last_session_messages(session_id: str, limit: int = 10) -> List[MessageResponse]:
-    """Get the last N messages for a specific chat session."""
     try:
         from uuid import UUID
         memory_service = MemoryService()
@@ -202,7 +192,6 @@ async def get_last_session_messages(session_id: str, limit: int = 10) -> List[Me
 
 @router.get("/sessions/{session_id}/stats", response_model=SessionStatsResponse)
 async def get_session_stats(session_id: str) -> SessionStatsResponse:
-    """Get statistics for a specific chat session."""
     try:
         from uuid import UUID
         memory_service = MemoryService()
@@ -227,7 +216,6 @@ async def get_session_stats(session_id: str) -> SessionStatsResponse:
 
 @router.get("/sessions/{session_id}/summaries", response_model=List[SummaryResponse])
 async def get_session_summaries(session_id: str) -> List[SummaryResponse]:
-    """Get all summaries for a specific chat session."""
     try:
         from uuid import UUID
         memory_service = MemoryService()
@@ -249,7 +237,6 @@ async def get_session_summaries(session_id: str) -> List[SummaryResponse]:
 
 @router.post("/send-message", response_model=SendMessageResponse)
 async def send_message_to_agent(request: SendMessageRequest) -> SendMessageResponse:
-    """Send a message to the agent and get a response."""
     try:
         MAX_USER_QUERY_TOKENS = int(os.getenv("MAX_USER_QUERY_TOKENS", 1024))
         tokenizer = OpenAITokenizerWrapper(model_name="cl100k_base")
@@ -259,7 +246,6 @@ async def send_message_to_agent(request: SendMessageRequest) -> SendMessageRespo
             user_message = truncate_text_to_max_tokens(request.message, MAX_USER_QUERY_TOKENS, model_name="cl100k_base")
             logging.warning(f"User message exceeded {MAX_USER_QUERY_TOKENS} tokens and was truncated.")
 
-        # Validate session ID
         try:
             session_id = UUID(request.session_id)
         except ValueError:
@@ -270,7 +256,6 @@ async def send_message_to_agent(request: SendMessageRequest) -> SendMessageRespo
                 error="Invalid session ID format"
             )
 
-        # Get session
         session_service = SessionService()
         session = session_service.get_session_by_id(session_id)
 
@@ -282,7 +267,6 @@ async def send_message_to_agent(request: SendMessageRequest) -> SendMessageRespo
                 error="Session not found"
             )
 
-        # Get user
         user_service = UserService()
         user = user_service.get_user_by_id(str(session.user_id))
 
@@ -294,7 +278,6 @@ async def send_message_to_agent(request: SendMessageRequest) -> SendMessageRespo
                 error="User not found"
             )
 
-        # Get agent from session
         if not session.agent_id:
             return SendMessageResponse(
                 success=False,
@@ -303,7 +286,6 @@ async def send_message_to_agent(request: SendMessageRequest) -> SendMessageRespo
                 error="No agent assigned to this session"
             )
 
-        # Fetch memory agent data using AgentService
         persona, instruction = AgentService.fetch_memory_agent_data(str(session.agent_id))
         if not instruction:
             return SendMessageResponse(
@@ -315,13 +297,11 @@ async def send_message_to_agent(request: SendMessageRequest) -> SendMessageRespo
 
         llm_client = OpenAIClientAdapter(api_key=os.getenv("OPENAI_API_KEY"))
 
-        # Initialize services
         chat_service = ChatService()
         memory_service = MemoryService(llm_client=llm_client)
         session_service = SessionService()
         prompt_builder = PromptBuilder()
 
-        # Initialize AgentService
         agent = AgentService(
             persona=persona,
             instruction=instruction,
@@ -336,12 +316,10 @@ async def send_message_to_agent(request: SendMessageRequest) -> SendMessageRespo
             prompt_builder=prompt_builder
         )
 
-        # Run the agent and get response
-        print(f'Running agent with input: {user_message}')
+        logger.info(f'Running agent with input: {user_message}')
         response = agent.run(user_message, request.session_id)
-        print(f'Agent response: {response}')
+        logger.info(f'Agent response: {response}')
 
-        # Store the user message in memory
         message_id = None
         try:
             message_id = memory_service.store_message(
@@ -350,9 +328,8 @@ async def send_message_to_agent(request: SendMessageRequest) -> SendMessageRespo
                 content=request.message
             )
         except Exception as e:
-            print(f"Warning: Could not store user message: {e}")
+            logger.warning(f"Could not store user message: {e}")
 
-        # Store the assistant response in memory
         try:
             memory_service.store_message(
                 chat_session_id=session_id,
@@ -360,7 +337,7 @@ async def send_message_to_agent(request: SendMessageRequest) -> SendMessageRespo
                 content=response
             )
         except Exception as e:
-            print(f"Warning: Could not store assistant response: {e}")
+            logger.warning(f"Could not store assistant response: {e}")
 
         return SendMessageResponse(
             success=True,
@@ -370,7 +347,7 @@ async def send_message_to_agent(request: SendMessageRequest) -> SendMessageRespo
         )
 
     except Exception as e:
-        print(f"Error in send_message_to_agent: {e}")
+        logger.error(f"Error in send_message_to_agent: {e}")
         return SendMessageResponse(
             success=False,
             response="",

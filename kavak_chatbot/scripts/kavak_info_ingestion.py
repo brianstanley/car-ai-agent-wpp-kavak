@@ -1,3 +1,4 @@
+import logging
 from dotenv import load_dotenv
 from docling.document_converter import DocumentConverter
 from docling_core.transforms.chunker.hybrid_chunker import HybridChunker
@@ -5,18 +6,19 @@ from docling_core.transforms.chunker.hybrid_chunker import HybridChunker
 from kavak_chatbot.utils.tokenizer import OpenAITokenizerWrapper
 from kavak_chatbot.services import KavakInfoService
 
+logger = logging.getLogger(__name__)
+
 load_dotenv()
 
 def run_kavak_info_ingestion():
-    """Extract Kavak information and store it in the database."""
     tokenizer = OpenAITokenizerWrapper()
     kavak_service = KavakInfoService()
     MAX_TOKENS = 8191  # text-embedding-3-small's maximum context length
 
-    print("Starting Kavak information extraction...")
+    logger.info("Starting Kavak information extraction...")
 
     converter = DocumentConverter()
-    print("Converting Kavak website...")
+    logger.info("Converting Kavak website...")
     result = converter.convert("https://www.kavak.com/mx/blog/sedes-de-kavak-en-mexico")
 
     # Initialize chunker with correct parameters
@@ -27,16 +29,16 @@ def run_kavak_info_ingestion():
     )
 
     # Chunk the document
-    print("Chunking document...")
+    logger.info("Chunking document...")
     chunk_iter = chunker.chunk(dl_doc=result.document)
     chunks = list(chunk_iter)
 
-    print(f"Created {len(chunks)} chunks")
+    logger.info(f"Created {len(chunks)} chunks")
 
     # Process and store chunks in database
-    print("Processing chunks and storing in database...")
+    logger.info("Processing chunks and storing in database...")
     for i, chunk in enumerate(chunks):
-        print(f"Processing chunk {i+1}/{len(chunks)}")
+        logger.info(f"Processing chunk {i+1}/{len(chunks)}")
         title = chunk.meta.headings[-1] if getattr(chunk.meta, "headings", None) else None
         metadata = chunk.meta.metadata if getattr(chunk.meta, "metadata", None) else None
         if metadata and hasattr(metadata[0], "dict"):
@@ -51,14 +53,14 @@ def run_kavak_info_ingestion():
                 metadata=metadata
             )
             if success:
-                print(f"Stored chunk {i+1} with {len(tokenizer.tokenize(chunk.text))} tokens")
+                logger.info(f"Stored chunk {i+1} with {len(tokenizer.tokenize(chunk.text))} tokens")
             else:
-                print(f"✗ Failed to store chunk {i+1}")
+                logger.error(f"Failed to store chunk {i+1}")
         except Exception as e:
-            print(f"  ✗ Error storing chunk {i+1}: {e}")
+            logger.error(f"Error storing chunk {i+1}: {e}")
 
-    print("Extraction complete!")
+    logger.info("Extraction complete!")
 
     # Display summary
     all_records = kavak_service.get_all_kavak_info()
-    print(f"Total records in database: {len(all_records)}")
+    logger.info(f"Total records in database: {len(all_records)}")
