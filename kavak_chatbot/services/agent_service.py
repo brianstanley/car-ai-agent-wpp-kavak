@@ -3,10 +3,13 @@ Agent service for managing conversation with LLM.
 """
 
 import json
+import logging
 import os
 import sys
 from typing import List, Dict, Any, Optional, Tuple
 from uuid import UUID
+
+logger = logging.getLogger(__name__)
 
 from kavak_chatbot.services.memory_service import MemoryService
 from kavak_chatbot.services.chat_service import ChatService
@@ -47,21 +50,6 @@ class AgentService:
         session_service: Optional['SessionService'] = None,
         prompt_builder: Optional[PromptBuilder] = None
     ):
-        """
-        Initialize the memory agent service with required dependencies.
-        Args:
-            persona: The persona configuration
-            instruction: The instruction for the agent
-            user: The user object
-            model: The LLM model to use
-            memory_agent_i: Memory agent identifier
-            llm_client: LLM client instance (injected)
-            memory_service: Memory service instance (injected)
-            chat_service: Chat service instance (injected)
-            user_service: User service instance (injected)
-            session_service: Session service instance (injected)
-            prompt_builder: Prompt builder instance (injected)
-        """
         self._validate_environment()
         self._initialize_dependencies(
             llm_client, memory_service, chat_service,
@@ -74,7 +62,7 @@ class AgentService:
         """Validate required environment variables."""
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
-            print("Error: OPENAI_API_KEY not found in environment variables")
+            logger.error("OPENAI_API_KEY not found in environment variables")
             sys.exit(1)
 
     def _initialize_dependencies(
@@ -116,22 +104,13 @@ class AgentService:
 
     @staticmethod
     def fetch_memory_agent_data(agent_id: str) -> Tuple[Optional[Persona], Optional[str]]:
-        """
-        Fetch memory agent data from database.
-
-        Args:
-            agent_id: The agent ID to fetch
-
-        Returns:
-            Tuple of (Persona, instruction) or (None, None) if not found
-        """
         try:
             with SessionLocal() as session:
                 # Fetch agent with persona relationship
                 agent = session.query(AgentDB).filter(AgentDB.id == UUID(agent_id)).first()
 
                 if not agent:
-                    print(f"Agent with ID {agent_id} not found")
+                    logger.warning(f"Agent with ID {agent_id} not found")
                     return None, None
 
                 # Fetch persona if it exists
@@ -150,18 +129,10 @@ class AgentService:
                 return persona, instruction_val
 
         except Exception as e:
-            print(f"Error fetching memory agent data: {e}")
+            logger.error(f"Error fetching memory agent data: {e}")
             return None, None
 
     def run(self, query: str, chat_session_id: str) -> str:
-        """
-        Run the agent with the given query.
-        Parameters:
-            query (str): The query to run the agent with.
-            chat_session_id (str): The conversation id to use.
-        Returns:
-            str: The response from the agent.
-        """
         try:
             # print(f"Chat Session ID: {chat_session_id}")
             memory_id = self._validate_session_exists(chat_session_id)
@@ -190,7 +161,7 @@ class AgentService:
 
         except Exception as e:
             error_msg = f"Error running MemAgent: {e}"
-            print(error_msg)
+            logger.error(error_msg)
             return error_msg
 
     def evaluate(self, user_query: str, chat_session_id: str):
@@ -200,18 +171,15 @@ class AgentService:
         memory_id = self._validate_session_exists(chat_session_id)
         messages = self._build_prompt_messages(user_query, memory_id)
         tool_metas = self._get_tool_definitions()
-        # Solo hacemos una llamada, no el main loop. TODO Hacer loop completo
+
         response = self._make_openai_call(messages, tool_metas)
         choice = response.choices[0]
         tool_calls = getattr(choice.message, "tool_calls", [])
         if tool_calls is None:
             tool_calls = []
         agent_response = choice.message.content if choice.message.content else ""
-        # El specialized_prompt es el system message
         specialized_prompt = messages[0]["content"] if messages and messages[0]["role"] == "system" else ""
-        # El evaluation_trigger_prompt es el user_query
         evaluation_trigger_prompt = user_query
-        # tools_invoked: lista de nombres de tools invocadas
         tools_invoked = []
         for tc in tool_calls:
             if hasattr(tc.function, 'name'):
@@ -224,18 +192,6 @@ class AgentService:
         }
 
     def _validate_session_exists(self, chat_session_id: str) -> str:
-        """
-        Validate that the session exists and return memory_id.
-
-        Args:
-            chat_session_id: The chat session ID to validate
-
-        Returns:
-            str: The memory_id (same as chat_session_id)
-
-        Raises:
-            ValueError: If session doesn't exist
-        """
         try:
             # Validate UUID format
             session_uuid = UUID(chat_session_id)
@@ -250,81 +206,49 @@ class AgentService:
                     raise ValueError(f"Session {chat_session_id} does not exist")
             else:
                 # Fallback if session_service not available
-                print(f"   SessionService not available, skipping validation")
+                logger.debug("SessionService not available, skipping validation")
                 return chat_session_id
 
         except ValueError as e:
-            print(f"   Session validation error: {e}")
+            logger.error(f"Session validation error: {e}")
             raise
         except Exception as e:
-            print(f"   Error validating session: {e}")
+            logger.error(f"Error validating session: {e}")
             raise
 
     def _record_user_query(self, query: str, chat_session_id: str) -> None:
-        """
-        Record the user's query in memory.
-
-        Parameters:
-            query (str): The user's query.
-            chat_session_id (str): The chat session ID.
-        """
         try:
             self.memory_service.store_message(UUID(chat_session_id), "user", query)
         except Exception as e:
-            print(f"   Warning: Could not record user query: {e}")
+            logger.warning(f"Could not record user query: {e}")
 
     def _record_assistant_response(self, response: str, chat_session_id: str) -> None:
-        """
-        Record the assistant's response in memory.
-
-        Parameters:
-            response (str): The assistant's response.
-            chat_session_id (str): The chat session ID.
-        """
         try:
             self.memory_service.store_message(UUID(chat_session_id), "assistant", response)
         except Exception as e:
-            print(f"   Warning: Could not record assistant response: {e}")
+            logger.warning(f"Could not record assistant response: {e}")
 
     def _check_and_summarize_conversation(self, chat_session_id: str) -> None:
-        """
-        Check if conversation should be summarized and perform summarization if needed.
 
-        Parameters:
-            chat_session_id (str): The chat session ID.
-        """
         try:
             session_uuid = UUID(chat_session_id)
 
             # Check if should summarize based on sliding window
             if self.memory_service.should_summarize_conversation(session_uuid):
-                print(f"   Triggering conversation summarization for session: {chat_session_id}")
+                logger.info(f"Triggering conversation summarization for session: {chat_session_id}")
                 success = self.memory_service.summarize_conversation(session_uuid)
 
                 if success:
-                    # print(f"   Conversation summarized successfully")
-                    pass
+                    logger.debug("Conversation summarized successfully")
                 else:
-                    # print(f"   Failed to summarize conversation")
-                    pass
+                    logger.warning("Failed to summarize conversation")
             else:
-                # print(f"   No summarization needed for session: {chat_session_id}")
-                pass
+                logger.debug(f"No summarization needed for session: {chat_session_id}")
 
         except Exception as e:
-            print(f"   Warning: Could not check/summarize conversation: {e}")
+            logger.warning(f"Could not check/summarize conversation: {e}")
 
     def _build_prompt_messages(self, query: str, memory_id: str) -> List[Dict[str, str]]:
-        """
-        Build prompt messages step by step, appending each component in order.
-
-        Args:
-            query: The user query
-            memory_id: The memory ID to use
-
-        Returns:
-            List[Dict[str, str]]: Messages list for OpenAI API
-        """
         messages = []
 
         # Step 1: Build system message
@@ -357,21 +281,18 @@ class AgentService:
             return f"Eres un asistente experto de Kavak. {self.persona}\n\n{self.instruction}"
 
     def _add_user_name_to_system(self, system_content: str) -> str:
-        """Add user name section to system content."""
         user_name_section = self._build_user_name_section()
         if user_name_section:
             system_content += f"\n\n{user_name_section}"
         return system_content
 
     def _add_user_preferences_to_system(self, system_content: str) -> str:
-        """Add user preferences section to system content."""
         preferences_section = self._build_user_preferences_section()
         if preferences_section:
             system_content += f"\n\n{preferences_section}"
         return system_content
 
     def _add_conversation_history(self, messages: List[Dict[str, str]], memory_id: str) -> None:
-        """Add conversation history to messages."""
         try:
             # Use optimized method that includes summary and only unsummarized messages
             conversation_messages = self.memory_service.get_session_messages_with_summary(
@@ -399,7 +320,7 @@ class AgentService:
 
         except Exception as e:
             try:
-                # print(f"   Falling back to original method...")
+                logger.debug("Falling back to original method...")
                 recent_messages = self.memory_service.get_last_n_messages(
                     UUID(memory_id),
                     n=AgentConfig.MAX_HISTORY_MESSAGES
@@ -415,8 +336,7 @@ class AgentService:
 
 
             except Exception as fallback_e:
-                # print(f"   Fallback also failed: {fallback_e}")
-                pass
+                logger.warning(f"Fallback also failed: {fallback_e}")
 
 
     def _get_openai_response(self, messages: List[Any], tools: Optional[List[Dict]] = None) -> str:
@@ -443,12 +363,6 @@ class AgentService:
             return f"Error getting response from LLM: {e}"
 
     def _build_user_preferences_section(self) -> str:
-        """
-        Build a formatted string containing the user's preferences for inclusion in the system message.
-
-        Returns:
-            str: Formatted preferences section or empty string if no preferences
-        """
         if not self.user or not self.user.preferences:
             return ""
 
@@ -468,7 +382,6 @@ class AgentService:
         if preferences.get('ine'):
             preferences_text += f"INE: {preferences['ine']}\n"
 
-        # Vehicle preferences
         vehicle_prefs = []
         if preferences.get('make'):
             vehicle_prefs.append(f"Marca: {preferences['make']}")
@@ -484,7 +397,6 @@ class AgentService:
             for pref in vehicle_prefs:
                 preferences_text += f"  - {pref}\n"
 
-        # Price and mileage ranges
         if preferences.get('price') and isinstance(preferences['price'], list) and len(preferences['price']) == 2:
             min_price, max_price = preferences['price']
             preferences_text += f"Rango de precio: ${min_price:,} - ${max_price:,} USD\n"
@@ -512,16 +424,10 @@ class AgentService:
 
         preferences_text += "=" * AgentConfig.PREFERENCES_SECTION_WIDTH + "\n"
 
-        # print(f"   Added user preferences to system message")
+        logger.debug("Added user preferences to system message")
         return preferences_text
 
     def _build_user_name_section(self) -> str:
-        """
-        Build a formatted string containing the user's name for inclusion in the system message.
-
-        Returns:
-            str: Formatted user name section or empty string if no name
-        """
         if not self.user:
             return ""
 
@@ -545,22 +451,16 @@ class AgentService:
         user_name_text += f"Nombre: {user_name}\n"
         user_name_text += "=" * AgentConfig.USER_NAME_SECTION_WIDTH + "\n"
 
-        # print(f"   Added user name '{user_name}' to system message")
+        logger.debug(f"Added user name '{user_name}' to system message")
         return user_name_text
 
     def _merge_preferences(self, user_id, new_preferences: dict):
-        """
-        Merges new preferences into the user's existing preferences in the database.
-        Parameters:
-            user_id (str): The ID of the user whose preferences are being updated.
-            new_preferences (dict): The new preferences to merge into the user's existing preferences.
-        """
-        print(f"Updating preferences for user {user_id}...")
+        logger.info(f"Updating preferences for user {user_id}...")
         try:
             if self.user_service:
                 self.user_service.update_preferences(user_id, new_preferences)
         except Exception as e:
-            print(f"Error al actualizar preferencias: {e}")
+            logger.error(f"Error al actualizar preferencias: {e}")
 
     def _execute_main_loop(self, messages, query, memory_id, conversation_id, user_id: str):
         """
@@ -582,7 +482,6 @@ class AgentService:
         raise RuntimeError("Max steps exceeded without reaching a final answer.")
 
     def _get_tool_definitions(self) -> List[Dict]:
-        """Get tool definitions from tool classes."""
         return [
             self.extract_user_name_tool.get_tool_definition(),
             self.catalog_search_tool.get_tool_definition(),
@@ -591,7 +490,6 @@ class AgentService:
         ]
 
     def _make_openai_call(self, messages: List[Dict], tool_metas: List[Dict]) -> Any:
-        """Make LLM API call with tools."""
         kwargs = {
             "model": self.model,
             "messages": messages,
@@ -606,7 +504,6 @@ class AgentService:
         return self.client.chat_completion(**kwargs)
 
     def _process_tool_calls(self, tool_calls: List, messages: List[Dict], user_id: str) -> None:
-        """Process tool calls and add results to messages."""
         tool_handlers = {
             "extract_and_save_user_name": self._handle_extract_user_name,
             "catalog_search": self._handle_catalog_search,
@@ -620,25 +517,21 @@ class AgentService:
                 tool_handlers[function_name](tool_call, messages, user_id)
 
     def _handle_extract_user_name(self, tool_call: Any, messages: List[Dict], user_id: str) -> None:
-        """Handle extract user name tool call."""
         args = json.loads(tool_call.function.arguments)
         result = self.extract_user_name_tool.execute(args, user_id)
         self._add_tool_response(tool_call, result, messages)
 
     def _handle_catalog_search(self, tool_call: Any, messages: List[Dict], user_id: str) -> None:
-        """Handle catalog search tool call."""
         args = json.loads(tool_call.function.arguments)
         result = self.catalog_search_tool.execute(args, 5)
         self._add_tool_response(tool_call, result, messages)
 
     def _handle_car_financing(self, tool_call: Any, messages: List[Dict], user_id: str) -> None:
-        """Handle car financing tool call."""
         args = json.loads(tool_call.function.arguments)
         result = self.car_financial_tool.execute(args, user_id)
         self._add_tool_response(tool_call, result, messages)
 
     def _handle_kavak_info_search(self, tool_call: Any, messages: List[Dict], user_id: str) -> None:
-        """Handle kavak info search tool call."""
         args = json.loads(tool_call.function.arguments)
         result = self.kavak_info_search_tool.execute(args)
         self._add_tool_response(tool_call, result, messages)
