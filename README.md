@@ -17,7 +17,7 @@ A continuación presento los diagramas principales que describen la arquitectura
 
 ## Variables de Entorno (env.example)
 
-Asegúrate de completar el archivo `.env` con las siguientes variables (puedes copiarlo desde `env.example`):
+Asegúrate de completar el archivo `.env` con las siguientes variables (podes copiarlo desde `env.example`):
 
 | Variable                   | Descripción                                                      |
 |----------------------------|------------------------------------------------------------------|
@@ -230,7 +230,7 @@ Para ver la documentación completa de todos los endpoints disponibles:
 - **ReDoc**: http://localhost:8000/redoc
 
 
-Vas a ver un prompt donde puedes escribir mensajes y recibir respuestas del agente. Usa `/quit` o `/exit` para salir del chat.
+Vas a ver un prompt donde podes escribir mensajes y recibir respuestas del agente. Usa `/quit` o `/exit` para salir del chat.
 
 Esto eliminará todas las tablas y las creará nuevamente desde cero.
 
@@ -259,7 +259,7 @@ Caso 2: Tenes disponible un chevrolet onix de menos de 300 mil y con menos 200 m
 Análisis del evaluador:
 ✅ El agente responde con información relevante del inventario y utiliza la herramienta 'catalog_search'.
 
-Caso 3: ¿Puedes contarme sobre la historia de Kavak?
+Caso 3: ¿podes contarme sobre la historia de Kavak?
 Análisis del evaluador:
 ✅ El agente proporciona información sobre la historia de Kavak y utiliza la herramienta 'kavak_info_search'.
 ```
@@ -278,6 +278,22 @@ Por cada caso de prueba, el evaluador devuelve un JSON con el análisis detallad
 ```
 
 Podes modificar o agregar casos en `evaluator/test_cases.json` para adaptar el playbook de pruebas.
+
+## Prompts del sistema
+
+Los prompts que definen el comportamiento del agente, el evaluador y los resúmenes se encuentran en la carpeta `data/prompts`. Podes modificarlos para ajustar la personalidad, reglas y respuestas del bot, así como la lógica de evaluación y resumen.
+
+**Archivos principales y su función:**
+
+- **agent.txt**: Reglas, personalidad y tono del agente comercial de Kavak.
+- **catalog_search.txt**: Instrucciones para normalizar y corregir preferencias de búsqueda de autos.
+- **evaluator.txt**: Prompt para el evaluador automático de casos de prueba conversacionales.
+- **conversation_summary.txt**: Instrucciones para generar y actualizar resúmenes de conversaciones de ventas.
+- **conversation_summary_system.txt**: Prompt de sistema para el resumen de conversaciones.
+- **kavak_info_summary.txt**: Formato para resumir información relevante de Kavak en respuesta a una consulta.
+- **kavak_info_summary_system.txt**: Prompt de sistema para resumir información compleja de Kavak.
+
+> Todos los prompts al ser editados se vuelven a cargar automáticamente en la API, por lo que no es necesario reiniciar el contenedor. Para el caso del prompt del agente es necesario correr los seeders nuevamente para que se actualice la información en la base de datos (ya que el agente se persiste)
 
 ## Comandos útiles
 
