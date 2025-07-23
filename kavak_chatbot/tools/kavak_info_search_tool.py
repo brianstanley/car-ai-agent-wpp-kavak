@@ -1,9 +1,12 @@
 from typing import Dict, Any, List, Optional
 from enum import Enum
+import logging
 
 from kavak_chatbot.services.kavak_info_service import KavakInfoService
 from kavak_chatbot.prompts.prompt_manager import prompt_manager
 from kavak_chatbot.services.llm_protocol import LLMClientProtocol
+
+logger = logging.getLogger(__name__)
 
 
 MAX_RESULTS_DEFAULT = 3
@@ -76,7 +79,7 @@ class KavakInfoSearchTool:
             return response.choices[0].message.content.strip()
 
         except Exception as e:
-            print(KavakInfoSearchError.SUMMARIZATION.value.format(error=e))
+            logger.error(KavakInfoSearchError.SUMMARIZATION.value.format(error=e))
             # Fallback: show query and up to two result snippets
             fallback = [res.text for res in results[:2]]
             items = "\n".join(f"- {text}" for text in fallback)
@@ -90,11 +93,11 @@ class KavakInfoSearchTool:
             if not query:
                 return KavakInfoSearchError.MISSING_QUERY.value
 
-            print(f"TOOL CALL- Buscando información de Kavak: '{query}'")
+            logger.info(f"TOOL CALL- Buscando información de Kavak: '{query}'")
             results = self.kavak_info_service.search_similar(query, limit=max_results) # use semantic search:)
 
             if not results:
-                print(KavakInfoSearchError.NOT_FOUND.value.format(query=query))
+                logger.warning(KavakInfoSearchError.NOT_FOUND.value.format(query=query))
                 return KavakInfoSearchError.NOT_FOUND.value.format(query=query)
 
             summarized_response = self._summarize_results(results, query, model="gpt-4o-mini")
@@ -102,5 +105,5 @@ class KavakInfoSearchTool:
 
         except Exception as e:
             error_msg = KavakInfoSearchError.SEARCH.value.format(error=e)
-            print(error_msg)
+            logger.error(error_msg)
             return error_msg

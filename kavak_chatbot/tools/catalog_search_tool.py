@@ -1,8 +1,11 @@
 import json
+import logging
 from typing import Dict, Any, List, Optional
 from pydantic import BaseModel, Field
 from kavak_chatbot.prompts.prompt_manager import prompt_manager
 from kavak_chatbot.services.llm_protocol import LLMClientProtocol
+
+logger = logging.getLogger(__name__)
 
 
 class CarFilters(BaseModel):
@@ -89,7 +92,7 @@ class CatalogSearchTool:
             normalized_content = normalize_response.choices[0].message.content
             return json.loads(normalized_content) if normalized_content else args
         except Exception as e:
-            print(f"Error normalizando filtros: {e}")
+            logger.error(f"Error normalizando filtros: {e}")
             return args
 
     def _convert_tool_args_to_filters(self, args: dict) -> dict:
@@ -199,7 +202,7 @@ class CatalogSearchTool:
             else:
                 base_sql += " ORDER BY year DESC LIMIT :limit"
             params['limit'] = limit
-            print(f"🔍 Query final ", base_sql, "con parámetros:", params)
+            logger.debug(f"Query final: {base_sql} con parámetros: {params}")
             session = SessionLocal()
 
             try:
@@ -228,7 +231,7 @@ class CatalogSearchTool:
                 session.close()
 
         except Exception as e:
-            print(f"Error in regular car search: {e}")
+            logger.error(f"Error in regular car search: {e}")
             return []
 
     def _format_car_search_results(self, cars: List[Dict[str, Any]]) -> str:

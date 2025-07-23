@@ -1,6 +1,6 @@
 from sqlalchemy import text, inspect
 from sqlalchemy.orm import Session
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 import logging
 
 from db.session import engine, SessionLocal
