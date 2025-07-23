@@ -1,10 +1,13 @@
 import os
 import json
+import logging
 
 from kavak_chatbot.services.llm_openai_adapter import OpenAIClientAdapter
 from kavak_chatbot.services.prompt_builder import PromptBuilder
 from kavak_chatbot.services import UserService, ChatService, MemoryService
 from evaluator.evaluator_agent import EvaluatorAgent
+
+logger = logging.getLogger(__name__)
 
 def run_kavak_evaluator():
     llm_client = OpenAIClientAdapter()
@@ -43,7 +46,7 @@ def run_kavak_evaluator():
         user_query = case["user_query"]
         expected = case["expected"]
         expected_tools = case["expected_tools"]
-        print(f"\nCaso {idx+1}: {user_query}")
+        logger.info(f"Caso {idx+1}: {user_query}")
         eval_data = agent.evaluate(user_query, chat_session_id)
         agent_response = eval_data["agent_response"]
         tools_invoked = eval_data["tools_invoked"]
@@ -54,5 +57,5 @@ def run_kavak_evaluator():
             expected=expected,
             expected_tools=expected_tools
         )
-        print("Análisis del evaluador:")
-        print(analysis)
+        logger.info("Análisis del evaluador:")
+        logger.info(analysis)

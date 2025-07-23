@@ -196,7 +196,6 @@ def run_parse_cars_to_database():
                 logger.error(f"Error processing car {row.get('stock_id', 'unknown')}: {e}")
                 failed_inserts += 1
 
-        # Print summary
         logger.info("="*50)
         logger.info("PROCESSING SUMMARY")
         logger.info("="*50)
