@@ -4,10 +4,13 @@ Setup script for the chatbot memory system.
 This script helps with initial project setup and verification.
 """
 import logging
+import os
+import sys
 
 import click
 from dotenv import load_dotenv
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))) # workaround for CI to find the path
 from db.database import engine
 from kavak_chatbot.models.db import agent
 from logging_config import setup_logging
