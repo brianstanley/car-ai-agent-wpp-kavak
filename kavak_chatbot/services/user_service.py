@@ -2,9 +2,10 @@
 User management service.
 """
 
-import psycopg2
+from enum import Enum
 from typing import Optional
 
+import psycopg2
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -12,7 +13,6 @@ from db.config import Config
 from db.session import SessionLocal
 from kavak_chatbot.models.db import UserDB
 from kavak_chatbot.models.schemas.user import User
-from enum import Enum
 
 
 class UserServiceError(str, Enum):

@@ -3,14 +3,17 @@ FastAPI application with organized API structure and versioning.
 """
 
 import logging
+
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 from api.v1 import api_v1_router
+from logging_config import setup_logging
 
 load_dotenv()
 
-logging.basicConfig(level=logging.INFO)
+setup_logging()
 logger = logging.getLogger(__name__)
 
 app = FastAPI(

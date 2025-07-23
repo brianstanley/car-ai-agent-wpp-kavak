@@ -163,7 +163,7 @@ class AgentService:
             str: The response from the agent.
         """
         try:
-            print(f"Chat Session ID: {chat_session_id}")
+            # print(f"Chat Session ID: {chat_session_id}")
             memory_id = self._validate_session_exists(chat_session_id)
 
             messages = self._build_prompt_messages(query, memory_id)
@@ -244,7 +244,7 @@ class AgentService:
             if self.session_service:
                 session = self.session_service.get_session_by_id(session_uuid)
                 if session:
-                    print(f"   Session validated: {session.id}")
+                    # print(f"   Session validated: {session.id}")
                     return chat_session_id  # Use as memory_id
                 else:
                     raise ValueError(f"Session {chat_session_id} does not exist")
@@ -299,16 +299,17 @@ class AgentService:
             # Check if should summarize based on sliding window
             if self.memory_service.should_summarize_conversation(session_uuid):
                 print(f"   Triggering conversation summarization for session: {chat_session_id}")
-
-                # Perform summarization
                 success = self.memory_service.summarize_conversation(session_uuid)
 
                 if success:
-                    print(f"   Conversation summarized successfully")
+                    # print(f"   Conversation summarized successfully")
+                    pass
                 else:
-                    print(f"   Failed to summarize conversation")
+                    # print(f"   Failed to summarize conversation")
+                    pass
             else:
-                print(f"   No summarization needed for session: {chat_session_id}")
+                # print(f"   No summarization needed for session: {chat_session_id}")
+                pass
 
         except Exception as e:
             print(f"   Warning: Could not check/summarize conversation: {e}")
@@ -336,8 +337,6 @@ class AgentService:
         # Step 3: Add current user query
         messages.append({"role": "user", "content": query})
 
-        # Step 4: Log final messages
-        self._log_prompt_messages(messages)
 
         return messages
 
@@ -359,7 +358,6 @@ class AgentService:
 
     def _add_user_name_to_system(self, system_content: str) -> str:
         """Add user name section to system content."""
-        print("   Step 1.5: Adding user name...")
         user_name_section = self._build_user_name_section()
         if user_name_section:
             system_content += f"\n\n{user_name_section}"
@@ -367,7 +365,6 @@ class AgentService:
 
     def _add_user_preferences_to_system(self, system_content: str) -> str:
         """Add user preferences section to system content."""
-        print("   Step 1.6: Adding user preferences...")
         preferences_section = self._build_user_preferences_section()
         if preferences_section:
             system_content += f"\n\n{preferences_section}"
@@ -401,11 +398,8 @@ class AgentService:
 
 
         except Exception as e:
-            print(f"   Warning: Could not add conversation history: {e}")
-
-            # Fallback to original method if optimized method fails
             try:
-                print(f"   Falling back to original method...")
+                # print(f"   Falling back to original method...")
                 recent_messages = self.memory_service.get_last_n_messages(
                     UUID(memory_id),
                     n=AgentConfig.MAX_HISTORY_MESSAGES
@@ -421,17 +415,11 @@ class AgentService:
 
 
             except Exception as fallback_e:
-                print(f"   Fallback also failed: {fallback_e}")
+                # print(f"   Fallback also failed: {fallback_e}")
+                pass
 
-    def _log_prompt_messages(self, messages: List[Dict[str, str]]) -> None:
-        """Log the final prompt messages for debugging."""
-        for i, msg in enumerate(messages):
-            print(f"  [{i}] {msg['role'].upper()}: {msg['content'][:50]}...")
 
     def _get_openai_response(self, messages: List[Any], tools: Optional[List[Dict]] = None) -> str:
-        """
-        Get response from LLM API.
-        """
         try:
             kwargs = {
                 "model": self.model,
@@ -524,7 +512,7 @@ class AgentService:
 
         preferences_text += "=" * AgentConfig.PREFERENCES_SECTION_WIDTH + "\n"
 
-        print(f"   Added user preferences to system message")
+        # print(f"   Added user preferences to system message")
         return preferences_text
 
     def _build_user_name_section(self) -> str:
@@ -557,7 +545,7 @@ class AgentService:
         user_name_text += f"Nombre: {user_name}\n"
         user_name_text += "=" * AgentConfig.USER_NAME_SECTION_WIDTH + "\n"
 
-        print(f"   Added user name '{user_name}' to system message")
+        # print(f"   Added user name '{user_name}' to system message")
         return user_name_text
 
     def _merge_preferences(self, user_id, new_preferences: dict):

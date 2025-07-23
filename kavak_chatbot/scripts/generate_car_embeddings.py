@@ -2,14 +2,16 @@
 Script to generate embeddings for car data and save them to the cars table.
 """
 
-import pandas as pd
 import os
 import sys
+
+import pandas as pd
 from typing import List
 from tqdm import tqdm
 from dotenv import load_dotenv
 from openai import OpenAI
 from sqlalchemy.exc import SQLAlchemyError
+
 from db.session import SessionLocal
 from kavak_chatbot.models.db import CarDB
 

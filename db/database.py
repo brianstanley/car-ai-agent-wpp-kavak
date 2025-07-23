@@ -4,8 +4,11 @@ from typing import List, Dict, Any, Optional
 import logging
 
 from db.session import engine, SessionLocal
-logging.basicConfig(level=logging.INFO)
+from logging_config import setup_logging
+
+setup_logging()
 logger = logging.getLogger(__name__)
+
 
 class DatabaseManager:
     """Database manager for PostgreSQL with pgvector support using SQLAlchemy."""

@@ -1,6 +1,7 @@
 from dotenv import load_dotenv
 from docling.document_converter import DocumentConverter
 from docling_core.transforms.chunker.hybrid_chunker import HybridChunker
+
 from kavak_chatbot.utils.tokenizer import OpenAITokenizerWrapper
 from kavak_chatbot.services import KavakInfoService
 

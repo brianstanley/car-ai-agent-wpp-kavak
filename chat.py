@@ -2,19 +2,20 @@
 Chat interactivo usando MemAgentService para gestionar la conversación.
 """
 
-from dotenv import load_dotenv
+import logging
 import os
+
+from dotenv import load_dotenv
 
 from kavak_chatbot.services import UserService, ChatService, MemoryService, AgentService
 from kavak_chatbot.services.llm_openai_adapter import OpenAIClientAdapter
 from kavak_chatbot.services.prompt_builder import PromptBuilder
 from kavak_chatbot.utils import OpenAITokenizerWrapper, truncate_text_to_max_tokens
+from logging_config import setup_logging
 
-# Cargar variables de entorno
 load_dotenv()
-
-
-# Remove the duplicate function - use AgentService.fetch_memory_agent_data instead
+setup_logging()
+logger = logging.getLogger(__name__)
 
 
 def main():
@@ -79,9 +80,8 @@ def main():
                 user_input = truncate_text_to_max_tokens(user_input, MAX_USER_QUERY_TOKENS, model_name="cl100k_base")
                 print(f"Tu mensaje fue muy largo y ha sido truncado a los primeros {MAX_USER_QUERY_TOKENS} tokens.")
 
-            print("🤖 Assistant: ", end="", flush=True)
             response = agent.run(user_input, chat_session_id)
-            print(f"Agente: ", response)
+            print(f"🤖 Assistant: {response}")
         except KeyboardInterrupt:
             print("\n\n👋 Chat interrupted. Goodbye!")
             break

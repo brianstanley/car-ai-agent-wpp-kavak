@@ -43,7 +43,7 @@ jobs:
           PGPASSWORD: postgres
       - name: Run DB migrations
         run: |
-          python setup.py --recreate
+          python setup.py database --recreate
       - name: Run seeders
         run: |
           python seeders.py

@@ -3,9 +3,18 @@
 Setup script for the chatbot memory system.
 This script helps with initial project setup and verification.
 """
+import logging
+
 import click
+from dotenv import load_dotenv
+
 from db.database import engine
 from kavak_chatbot.models.db import agent
+from logging_config import setup_logging
+
+load_dotenv()
+setup_logging()
+logger = logging.getLogger(__name__)
 
 Base = agent.Base
 
@@ -23,7 +32,7 @@ def create_db():
 @click.group()
 def cli():
     """Setup script for the Kavak chatbot system.
-    
+
     Available commands:
     - database: Manage database operations
     - generate-car-embeddings: Generate car embeddings from CSV data
@@ -35,7 +44,7 @@ def cli():
 @click.option('--recreate', is_flag=True, help="Eliminar y recrear todas las tablas")
 def database(recreate):
     """Manage database operations.
-    
+
     Examples:
         python setup.py database              # Create tables if they don't exist
         python setup.py database --recreate  # Drop and recreate all tables
@@ -48,10 +57,10 @@ def database(recreate):
 @cli.command()
 def generate_car_embeddings():
     """Generate car embeddings from CSV data and store in database.
-    
+
     This command reads car data from data/sample_caso_ai_engineer.csv,
     generates embeddings for each car description, and stores them in the database.
-    
+
     Example:
         python setup.py generate-car-embeddings
     """
@@ -61,10 +70,10 @@ def generate_car_embeddings():
 @cli.command()
 def kavak_info_ingestion():
     """Extract Kavak information from website and store in database.
-    
+
     This command scrapes the Kavak website, chunks the content,
     generates embeddings, and stores the information in the database.
-    
+
     Example:
         python setup.py kavak-info-ingestion
     """

@@ -6,9 +6,10 @@ Handles storing and retrieving conversation messages.
 from datetime import datetime, UTC
 from typing import List, Optional, Dict, Any
 from uuid import UUID
+from enum import Enum
+
 from sqlalchemy import select, func, case
 from sqlalchemy.exc import SQLAlchemyError
-from enum import Enum
 
 from kavak_chatbot.models.db.conversation_memory import ConversationMemoryDB
 from kavak_chatbot.models.db.summary import SummaryDB
@@ -45,23 +46,10 @@ class MemoryServiceError(str, Enum):
     DB_GET_SUMMARY = "Database error getting summary: {error}"
 
 class MemoryService:
-    """Memory management service using SQLAlchemy."""
-
     def __init__(self, llm_client: Optional[LLMClientProtocol] = None):
         self.llm_client = llm_client
 
     def store_message(self, chat_session_id: UUID, role: str, content: str) -> Optional[UUID]:
-        """
-        Store a message in the conversations_memory table.
-
-        Args:
-            chat_session_id: The ID of the chat session
-            role: The role of the message sender ('user', 'assistant', 'system')
-            content: The message content
-
-        Returns:
-            The ID of the stored message, or None if failed
-        """
         if role not in ['user', 'assistant', 'system']:
             print(MemoryServiceError.INVALID_ROLE.value.format(role=role))
             return None
@@ -85,15 +73,6 @@ class MemoryService:
             return None
 
     def get_session_messages(self, chat_session_id: UUID) -> List[Dict[str, Any]]:
-        """
-        Retrieve all messages for a specific chat session.
-
-        Args:
-            chat_session_id: The ID of the chat session
-
-        Returns:
-            List of message dictionaries
-        """
         try:
             with SessionLocal() as session:
                 db_messages = session.scalars(
@@ -109,16 +88,6 @@ class MemoryService:
             return []
 
     def get_session_messages_with_summary(self, chat_session_id: UUID) -> List[Dict[str, Any]]:
-        """
-        Retrieve messages for a specific chat session with summary included.
-        This includes unsummarized messages plus the conversation summary.
-
-        Args:
-            chat_session_id: The ID of the chat session
-
-        Returns:
-            List of message dictionaries with summary included
-        """
         try:
             messages = []
 
@@ -145,15 +114,6 @@ class MemoryService:
             return []
 
     def get_session_stats(self, chat_session_id: UUID) -> Dict[str, Any]:
-        """
-        Get statistics for a chat session.
-
-        Args:
-            chat_session_id: The ID of the chat session
-
-        Returns:
-            Dictionary with session statistics
-        """
         try:
             with SessionLocal() as session:
                 result = session.execute(
@@ -441,7 +401,7 @@ class MemoryService:
             # Check if we have enough accumulated unsummarized messages to trigger
             trigger_threshold = MemorySummaryConfig.DEFAULT_WINDOW_SIZE + MemorySummaryConfig.DEFAULT_TOLERANCE
 
-            print(f"   Unsummarized messages: {len(unsummarized_messages)} (need {trigger_threshold} to trigger)")
+            # print(f"   Unsummarized messages: {len(unsummarized_messages)} (need {trigger_threshold} to trigger)")
 
             return len(unsummarized_messages) >= trigger_threshold
 
@@ -461,33 +421,34 @@ class MemoryService:
             True if summarization was successful, False otherwise
         """
         try:
-            print(f"Summarizing conversation for session: {chat_session_id}")
+            # print(f"Summarizing conversation for session: {chat_session_id}")
 
             # Get ALL unsummarized messages (without limit)
             all_unsummarized_messages = self._get_unsummarized_messages(chat_session_id)
 
             if not all_unsummarized_messages:
-                print("   No unsummarized messages found")
+                # print("   No unsummarized messages found")
                 return True
 
             trigger_threshold = MemorySummaryConfig.DEFAULT_WINDOW_SIZE + MemorySummaryConfig.DEFAULT_TOLERANCE
-            print(f"   Found {len(all_unsummarized_messages)} total unsummarized messages (need {trigger_threshold} to trigger)")
+            # print(f"   Found {len(all_unsummarized_messages)} total unsummarized messages (need {trigger_threshold} to trigger)")
 
             # Only summarize if we have enough accumulated messages to trigger
             if len(all_unsummarized_messages) < trigger_threshold:
-                print(f"   Not enough accumulated messages to summarize. Need {trigger_threshold}, have {len(all_unsummarized_messages)}")
+                # print(f"   Not enough accumulated messages to summarize. Need {trigger_threshold}, have {len(all_unsummarized_messages)}")
                 return True
 
             # Take only the first N messages (oldest ones) for summarization
             messages_to_summarize = all_unsummarized_messages[:MemorySummaryConfig.DEFAULT_WINDOW_SIZE]
-            print(f"   Will summarize {len(messages_to_summarize)} messages (first {MemorySummaryConfig.DEFAULT_WINDOW_SIZE} of {len(all_unsummarized_messages)} accumulated)")
+            # print(f"   Will summarize {len(messages_to_summarize)} messages (first {MemorySummaryConfig.DEFAULT_WINDOW_SIZE} of {len(all_unsummarized_messages)} accumulated)")
 
             # Get existing summary to pass to the generation method
             existing_summary = self.get_conversation_summary(chat_session_id)
             old_summary_text = existing_summary.get('text') if existing_summary else None
 
             if old_summary_text:
-                print(f"   Found existing summary, will consider it when generating new summary")
+                # print(f"   Found existing summary, will consider it when generating new summary")
+                pass
 
             # Generate summary
             summary_text = self._generate_summary(messages_to_summarize, old_summary_text)
@@ -511,16 +472,16 @@ class MemoryService:
                     session.add(summary_record)
                     session.commit()
 
-                    print(f"   Summary updated successfully")
+                    # print(f"   Summary updated successfully")
 
                     # Mark messages as summarized (only the ones we actually summarized)
                     message_ids = [str(msg.id) for msg in messages_to_summarize]
                     if self._mark_messages_as_summarized([UUID(msg_id) for msg_id in message_ids]):
-                        print(f"   Marked {len(message_ids)} messages as summarized")
-                        print(f"   Remaining unsummarized: {len(all_unsummarized_messages) - len(messages_to_summarize)} messages")
+                        # print(f"   Marked {len(message_ids)} messages as summarized")
+                        # print(f"   Remaining unsummarized: {len(all_unsummarized_messages) - len(messages_to_summarize)} messages")
                         return True
                     else:
-                        print("   Failed to mark messages as summarized")
+                        # print("   Failed to mark messages as summarized")
                         return False
 
             except SQLAlchemyError as e:

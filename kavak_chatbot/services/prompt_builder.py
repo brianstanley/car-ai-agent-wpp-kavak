@@ -3,6 +3,7 @@ Prompt Builder Service for constructing prompts with fluent interface.
 """
 from datetime import datetime
 from typing import Optional
+
 from kavak_chatbot.services.memory_service import MemoryService
 
 
