@@ -38,7 +38,7 @@ Completa los valores según tu entorno y credenciales.
 
 Como parte de los entregables se puede el roadmap y backlog del proyecto en el siguiente documento:
 
-[Roadmap y Backlog (PDF)](Roadmap.pdf)
+[Roadmap, Backlog (PDF)](entregable.pdf)
 
 ## Requisitos
 
@@ -233,6 +233,51 @@ Para ver la documentación completa de todos los endpoints disponibles:
 Vas a ver un prompt donde puedes escribir mensajes y recibir respuestas del agente. Usa `/quit` o `/exit` para salir del chat.
 
 Esto eliminará todas las tablas y las creará nuevamente desde cero.
+
+## Evaluator (Beta)
+
+El proyecto incluye un **evaluador conversacional**. Este componente permite ejecutar un conjunto de casos simples de prueba definidos en `evaluator/test_cases.json` (a modo de playbook), y delega la evaluación de las respuestas a un agente especializado en análisis conversacional.
+
+El evaluador simula interacciones reales, compara la respuesta del agente con lo esperado y utiliza un LLM para analizar la calidad de la respuesta y el uso de herramientas.
+
+### ¿Cómo ejecutarlo?
+
+Podes correr el evaluador dentro del contenedor de la API con:
+
+```bash
+docker-compose exec api python run_evaluator.py
+```
+
+### Ejemplo de output
+
+```text
+Caso 1: hola
+Análisis del evaluador:
+✅ El agente se presenta correctamente como agente de ventas de Kavak y no utiliza herramientas.
+
+Caso 2: Tenes disponible un chevrolet onix de menos de 300 mil y con menos 200 mil km
+Análisis del evaluador:
+✅ El agente responde con información relevante del inventario y utiliza la herramienta 'catalog_search'.
+
+Caso 3: ¿Puedes contarme sobre la historia de Kavak?
+Análisis del evaluador:
+✅ El agente proporciona información sobre la historia de Kavak y utiliza la herramienta 'kavak_info_search'.
+```
+
+### Ejemplo de output JSON
+
+Por cada caso de prueba, el evaluador devuelve un JSON con el análisis detallado:
+
+```json
+{
+  "tools_match": true,
+  "tools_comments": "No hay expected_tools, por lo tanto, las tools invocadas coinciden con las esperadas.",
+  "response_match": true,
+  "response_comments": "La respuesta del agente es coherente y cumple con lo esperado."
+}
+```
+
+Podes modificar o agregar casos en `evaluator/test_cases.json` para adaptar el playbook de pruebas.
 
 ## Comandos útiles
 
