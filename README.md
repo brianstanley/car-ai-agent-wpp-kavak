@@ -36,7 +36,7 @@ Completa los valores según tu entorno y credenciales.
 
 ## Roadmap y Backlog
 
-Como parte de los entregables se puede el roadmap y backlog del proyecto en el siguiente documento:
+Como parte de los entregables se encuentra el roadmap y backlog del proyecto en el siguiente documento:
 
 [Roadmap, Backlog (PDF)](entregable.pdf)
 
