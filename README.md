@@ -79,13 +79,19 @@ La API estará disponible en: http://localhost:8000/api/v1
 - Documentación ReDoc: http://localhost:8000/redoc
 - Health Check: http://localhost:8000/v1/health
 
-### 7. (Opcional) Recrear la base de datos
+## Modo Interactivo: Ejecutar el Chat
 
-Si necesitas eliminar y volver a crear la base de datos (por ejemplo, para un entorno limpio), ejecuta:
+Para poder interactuar con el agente conversacional de Kavak ya sea para desarrollo o prueba se puede ejecutar de manera local usando el script `chat.py`.
+
+### ¿Cómo ejecutarlo?
+
+
 
 ```bash
-docker-compose exec api python setup.py database --recreate
+docker-compose exec api python chat.py
 ```
+
+Vas a ver un prompt donde puedes escribir mensajes y recibir respuestas del agente. Usa `/quit` o `/exit` para salir del chat.
 
 Esto eliminará todas las tablas y las creará nuevamente desde cero.
 
@@ -100,12 +106,12 @@ El script `setup.py` ahora usa Click y proporciona varios comandos útiles:
 docker-compose exec api python setup.py --help
 
 # Comandos de base de datos
-docker-compose exec api python setup.py database              # Crear tablas
-docker-compose exec api python setup.py database --recreate  # Recrear todas las tablas
+docker-compose exec api python setup.py database              # Crear tablas.
+docker-compose exec api python setup.py database --recreate  # Recrear todas las tablas.
 
 # Generar embeddings y datos
-docker-compose exec api python setup.py generate-car-embeddings  # Generar embeddings de autos
-docker-compose exec api python setup.py kavak-info-ingestion     # Extraer info de Kavak
+docker-compose exec api python setup.py generate-car-embeddings  # Popular la tabla de autos.
+docker-compose exec api python setup.py kavak-info-ingestion     # Extraer info de Kavak y generar los embeddings correspondientes.
 
 # Ver ayuda específica de cada comando
 docker-compose exec api python setup.py database --help
@@ -129,18 +135,4 @@ Si tenes problemas:
 3. Asegúrate de que el archivo `.env` esté correctamente configurado. 
 4. Revisa estar accediendo mediante el versionado v1 a la api.
 5. Verifica haber corrido los scripts de migración y generación de embeddings.
-
-## Modo Interactivo: Ejecutar el Chat
-
-Para poder interactuar con el agente conversacional de Kavak ya sea para desarrollo o prueba se puede ejecutar de manera local usando el script `chat.py`. 
-
-### ¿Cómo ejecutarlo?
-
-Asegúrate de tener las dependencias instaladas y las variables de entorno configuradas. Luego ejecuta:
-
-```bash
-python chat.py
-```
-
-Vas a ver un prompt donde puedes escribir mensajes y recibir respuestas del agente. Usa `/quit` o `/exit` para salir del chat.
 

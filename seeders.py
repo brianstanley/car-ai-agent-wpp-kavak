@@ -177,7 +177,6 @@ class DatabaseSeeder:
             print(f"  - User ID:             {user['id']}")
             print(f"  - Application Mode:    {agent.application_mode}")
             print(f"  - Persona ID:          {agent.persona_id}")
-            print(f"  - Tools:               {agent.tools}")
             print("\n🎉 All seeders completed successfully!")
             return agent
 
