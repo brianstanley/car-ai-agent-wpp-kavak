@@ -5,12 +5,7 @@ import logging
 
 from db.session import engine, SessionLocal
 
-import sys
-import os
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from logging_config import setup_logging
-setup_logging()
 logger = logging.getLogger(__name__)
 
 

@@ -1,4 +1,5 @@
 from typing import List, Optional
+import logging
 import os
 from enum import Enum
 
@@ -7,6 +8,8 @@ from sqlalchemy.orm import Session
 
 from kavak_chatbot.models.db.kavak_info import KavakInfoDB
 from db.session import SessionLocal
+
+logger = logging.getLogger(__name__)
 
 
 class KavakInfoServiceError(str, Enum):
@@ -29,7 +32,7 @@ class KavakInfoService:
             )
             return response.data[0].embedding
         except Exception as e:
-            print(KavakInfoServiceError.EMBEDDING.value.format(error=e))
+            logger.error(KavakInfoServiceError.EMBEDDING.value.format(error=e))
             raise
 
     def create_kavak_info_with_embedding(
@@ -55,7 +58,7 @@ class KavakInfoService:
             return True
 
         except Exception as e:
-            print(KavakInfoServiceError.CREATE.value.format(error=e))
+            logger.error(KavakInfoServiceError.CREATE.value.format(error=e))
             session.rollback()
             return False
         finally:

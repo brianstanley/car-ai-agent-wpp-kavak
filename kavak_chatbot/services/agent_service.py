@@ -59,7 +59,6 @@ class AgentService:
         self._initialize_tools()
 
     def _validate_environment(self) -> None:
-        """Validate required environment variables."""
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
             logger.error("OPENAI_API_KEY not found in environment variables")
@@ -106,14 +105,12 @@ class AgentService:
     def fetch_memory_agent_data(agent_id: str) -> Tuple[Optional[Persona], Optional[str]]:
         try:
             with SessionLocal() as session:
-                # Fetch agent with persona relationship
                 agent = session.query(AgentDB).filter(AgentDB.id == UUID(agent_id)).first()
 
                 if not agent:
                     logger.warning(f"Agent with ID {agent_id} not found")
                     return None, None
 
-                # Fetch persona if it exists
                 persona = None
                 if agent.persona_id is not None:
                     persona_db = session.query(PersonaDB).filter(PersonaDB.id == agent.persona_id).first()
@@ -265,7 +262,6 @@ class AgentService:
         return messages
 
     def _build_system_message(self) -> Dict[str, str]:
-        """Build the system message with persona, instruction, user name, and preferences."""
         system_content = self._build_base_system_content()
         system_content = self._add_user_name_to_system(system_content)
         system_content = self._add_user_preferences_to_system(system_content)
@@ -273,7 +269,6 @@ class AgentService:
         return {"role": "system", "content": system_content}
 
     def _build_base_system_content(self) -> str:
-        """Build the base system content with persona and instruction."""
         if self.prompt_builder:
             return self.prompt_builder.add_system(self.persona, self.instruction).system_prompt
         else:

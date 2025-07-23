@@ -3,6 +3,7 @@ Memory Management Service
 Handles storing and retrieving conversation messages.
 """
 
+import logging
 from datetime import datetime, UTC
 from typing import List, Optional, Dict, Any
 from uuid import UUID
@@ -16,6 +17,8 @@ from kavak_chatbot.models.db.summary import SummaryDB
 from db.session import SessionLocal
 from kavak_chatbot.prompts.prompt_manager import prompt_manager
 from kavak_chatbot.services.llm_protocol import LLMClientProtocol
+
+logger = logging.getLogger(__name__)
 
 # Configuration constants
 class MemorySummaryConfig:
@@ -51,7 +54,7 @@ class MemoryService:
 
     def store_message(self, chat_session_id: UUID, role: str, content: str) -> Optional[UUID]:
         if role not in ['user', 'assistant', 'system']:
-            print(MemoryServiceError.INVALID_ROLE.value.format(role=role))
+            logger.error(MemoryServiceError.INVALID_ROLE.value.format(role=role))
             return None
 
         try:
@@ -69,7 +72,7 @@ class MemoryService:
                 return new_message.id
 
         except SQLAlchemyError as e:
-            print(MemoryServiceError.DB_STORE_MESSAGE.value.format(error=e))
+            logger.error(MemoryServiceError.DB_STORE_MESSAGE.value.format(error=e))
             return None
 
     def get_session_messages(self, chat_session_id: UUID) -> List[Dict[str, Any]]:
@@ -84,7 +87,7 @@ class MemoryService:
                 return [self._message_to_dict(msg) for msg in db_messages]
 
         except SQLAlchemyError as e:
-            print(MemoryServiceError.DB_RETRIEVE_MESSAGES.value.format(error=e))
+            logger.error(MemoryServiceError.DB_RETRIEVE_MESSAGES.value.format(error=e))
             return []
 
     def get_session_messages_with_summary(self, chat_session_id: UUID) -> List[Dict[str, Any]]:
@@ -110,7 +113,7 @@ class MemoryService:
             return messages
 
         except Exception as e:
-            print(MemoryServiceError.ERROR_RETRIEVE_WITH_SUMMARY.value.format(error=e))
+            logger.error(MemoryServiceError.ERROR_RETRIEVE_WITH_SUMMARY.value.format(error=e))
             return []
 
     def get_session_stats(self, chat_session_id: UUID) -> Dict[str, Any]:
@@ -141,7 +144,7 @@ class MemoryService:
                     return {}
 
         except SQLAlchemyError as e:
-            print(MemoryServiceError.DB_SESSION_STATS.value.format(error=e))
+            logger.error(MemoryServiceError.DB_SESSION_STATS.value.format(error=e))
             return {}
 
     def get_last_n_messages(self, chat_session_id: UUID, n: int = 10, unsummarized_only: bool = False) -> List[Dict[str, Any]]:
@@ -178,7 +181,7 @@ class MemoryService:
 
         except SQLAlchemyError as e:
             filter_type = "unsummarized" if unsummarized_only else "all"
-            print(MemoryServiceError.DB_LAST_N_MESSAGES.value.format(n=n, filter_type=filter_type, error=e))
+            logger.error(MemoryServiceError.DB_LAST_N_MESSAGES.value.format(n=n, filter_type=filter_type, error=e))
             return []
 
     def get_last_n_summaries(self, chat_session_id: UUID, n: int = 5) -> List[Dict[str, Any]]:
@@ -204,7 +207,7 @@ class MemoryService:
                 return [self._summary_to_dict(summary) for summary in db_summaries]
 
         except SQLAlchemyError as e:
-            print(MemoryServiceError.DB_RETRIEVE_SUMMARIES.value.format(error=e))
+            logger.error(MemoryServiceError.DB_RETRIEVE_SUMMARIES.value.format(error=e))
             return []
 
     def _message_to_dict(self, db_message: ConversationMemoryDB) -> Dict[str, Any]:
@@ -252,7 +255,7 @@ class MemoryService:
                 return list(session.scalars(query).all())
 
         except SQLAlchemyError as e:
-            print(MemoryServiceError.DB_UNSUMMARIZED.value.format(error=e))
+            logger.error(MemoryServiceError.DB_UNSUMMARIZED.value.format(error=e))
             return []
 
     def _get_or_create_summary(self, chat_session_id: UUID) -> Optional[SummaryDB]:
@@ -289,7 +292,7 @@ class MemoryService:
                     return new_summary
 
         except SQLAlchemyError as e:
-            print(MemoryServiceError.DB_GET_CREATE_SUMMARY.value.format(error=e))
+            logger.error(MemoryServiceError.DB_GET_CREATE_SUMMARY.value.format(error=e))
             return None
 
     def _mark_messages_as_summarized(self, message_ids: List[UUID]) -> bool:
@@ -317,7 +320,7 @@ class MemoryService:
                 return True
 
         except SQLAlchemyError as e:
-            print(MemoryServiceError.DB_MARK_SUMMARIZED.value.format(error=e))
+            logger.error(MemoryServiceError.DB_MARK_SUMMARIZED.value.format(error=e))
             return False
 
     def _generate_summary(self, messages: List[ConversationMemoryDB], old_summary: Optional[str] = None) -> str:
@@ -326,7 +329,7 @@ class MemoryService:
         """
         try:
             if not self.llm_client:
-                print(MemoryServiceError.OPENAI_KEY_MISSING.value)
+                logger.error(MemoryServiceError.OPENAI_KEY_MISSING.value)
                 return "Error: LLM client not configured"
 
             # Format messages for summarization
@@ -356,7 +359,7 @@ class MemoryService:
             return summary.strip() if summary else "No se pudo generar resumen"
 
         except Exception as e:
-            print(MemoryServiceError.ERROR_GENERATE_SUMMARY.value.format(error=e))
+            logger.error(MemoryServiceError.ERROR_GENERATE_SUMMARY.value.format(error=e))
             return f"Error generando resumen: {e}"
 
     def _format_messages_for_summary(self, messages: List[ConversationMemoryDB]) -> str:
@@ -401,12 +404,12 @@ class MemoryService:
             # Check if we have enough accumulated unsummarized messages to trigger
             trigger_threshold = MemorySummaryConfig.DEFAULT_WINDOW_SIZE + MemorySummaryConfig.DEFAULT_TOLERANCE
 
-            # print(f"   Unsummarized messages: {len(unsummarized_messages)} (need {trigger_threshold} to trigger)")
+            logger.debug(f"Unsummarized messages: {len(unsummarized_messages)} (need {trigger_threshold} to trigger)")
 
             return len(unsummarized_messages) >= trigger_threshold
 
         except Exception as e:
-            print(MemoryServiceError.ERROR_SHOULD_SUMMARIZE.value.format(error=e))
+            logger.error(MemoryServiceError.ERROR_SHOULD_SUMMARIZE.value.format(error=e))
             return False
 
     def summarize_conversation(self, chat_session_id: UUID) -> bool:
@@ -421,34 +424,33 @@ class MemoryService:
             True if summarization was successful, False otherwise
         """
         try:
-            # print(f"Summarizing conversation for session: {chat_session_id}")
+            logger.info(f"Summarizing conversation for session: {chat_session_id}")
 
             # Get ALL unsummarized messages (without limit)
             all_unsummarized_messages = self._get_unsummarized_messages(chat_session_id)
 
             if not all_unsummarized_messages:
-                # print("   No unsummarized messages found")
+                logger.debug("No unsummarized messages found")
                 return True
 
             trigger_threshold = MemorySummaryConfig.DEFAULT_WINDOW_SIZE + MemorySummaryConfig.DEFAULT_TOLERANCE
-            # print(f"   Found {len(all_unsummarized_messages)} total unsummarized messages (need {trigger_threshold} to trigger)")
+            logger.debug(f"Found {len(all_unsummarized_messages)} total unsummarized messages (need {trigger_threshold} to trigger)")
 
             # Only summarize if we have enough accumulated messages to trigger
             if len(all_unsummarized_messages) < trigger_threshold:
-                # print(f"   Not enough accumulated messages to summarize. Need {trigger_threshold}, have {len(all_unsummarized_messages)}")
+                logger.debug(f"Not enough accumulated messages to summarize. Need {trigger_threshold}, have {len(all_unsummarized_messages)}")
                 return True
 
             # Take only the first N messages (oldest ones) for summarization
             messages_to_summarize = all_unsummarized_messages[:MemorySummaryConfig.DEFAULT_WINDOW_SIZE]
-            # print(f"   Will summarize {len(messages_to_summarize)} messages (first {MemorySummaryConfig.DEFAULT_WINDOW_SIZE} of {len(all_unsummarized_messages)} accumulated)")
+            logger.debug(f"Will summarize {len(messages_to_summarize)} messages (first {MemorySummaryConfig.DEFAULT_WINDOW_SIZE} of {len(all_unsummarized_messages)} accumulated)")
 
             # Get existing summary to pass to the generation method
             existing_summary = self.get_conversation_summary(chat_session_id)
             old_summary_text = existing_summary.get('text') if existing_summary else None
 
             if old_summary_text:
-                # print(f"   Found existing summary, will consider it when generating new summary")
-                pass
+                logger.debug("Found existing summary, will consider it when generating new summary")
 
             # Generate summary
             summary_text = self._generate_summary(messages_to_summarize, old_summary_text)
@@ -456,7 +458,7 @@ class MemoryService:
             # Get or create summary record
             summary_record = self._get_or_create_summary(chat_session_id)
             if not summary_record:
-                print("   Failed to get/create summary record")
+                logger.error("Failed to get/create summary record")
                 return False
 
             # Update summary
@@ -472,24 +474,24 @@ class MemoryService:
                     session.add(summary_record)
                     session.commit()
 
-                    # print(f"   Summary updated successfully")
+                    logger.debug("Summary updated successfully")
 
                     # Mark messages as summarized (only the ones we actually summarized)
                     message_ids = [str(msg.id) for msg in messages_to_summarize]
                     if self._mark_messages_as_summarized([UUID(msg_id) for msg_id in message_ids]):
-                        # print(f"   Marked {len(message_ids)} messages as summarized")
-                        # print(f"   Remaining unsummarized: {len(all_unsummarized_messages) - len(messages_to_summarize)} messages")
+                        logger.debug(f"Marked {len(message_ids)} messages as summarized")
+                        logger.debug(f"Remaining unsummarized: {len(all_unsummarized_messages) - len(messages_to_summarize)} messages")
                         return True
                     else:
-                        # print("   Failed to mark messages as summarized")
+                        logger.error("Failed to mark messages as summarized")
                         return False
 
             except SQLAlchemyError as e:
-                print(MemoryServiceError.DB_UPDATE_SUMMARY.value.format(error=e))
+                logger.error(MemoryServiceError.DB_UPDATE_SUMMARY.value.format(error=e))
                 return False
 
         except Exception as e:
-            print(MemoryServiceError.ERROR_SUMMARIZE_CONV.value.format(error=e))
+            logger.error(MemoryServiceError.ERROR_SUMMARIZE_CONV.value.format(error=e))
             return False
 
     def get_conversation_summary(self, chat_session_id: UUID) -> Optional[Dict[str, Any]]:
@@ -524,5 +526,5 @@ class MemoryService:
                     return None
 
         except SQLAlchemyError as e:
-            print(MemoryServiceError.DB_GET_SUMMARY.value.format(error=e))
+            logger.error(MemoryServiceError.DB_GET_SUMMARY.value.format(error=e))
             return None
