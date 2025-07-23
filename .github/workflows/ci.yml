@@ -23,6 +23,8 @@ jobs:
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/kavak_test
       OPENAI_API_KEY: dummy
+      DEFAULT_KAVAK_AGENT_ID: 82beea6b-dbb5-4e63-a1f7-ac82b601c8c8
+      DEFAULT_DEMO_PHONE_NUMBER: '1111'
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
