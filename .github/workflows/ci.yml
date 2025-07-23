@@ -21,7 +21,7 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U postgres" --health-interval 10s --health-timeout 5s --health-retries 5
     env:
-      DATABASE_URL: postgresql+psycopg2://postgres:postgres@localhost:5432/kavak_test
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/kavak_test
       OPENAI_API_KEY: dummy
     steps:
       - uses: actions/checkout@v4
