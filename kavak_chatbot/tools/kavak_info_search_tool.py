@@ -1,7 +1,3 @@
-"""
-Tool for semantic search of Kavak information.
-"""
-
 from typing import Dict, Any, List, Optional
 from enum import Enum
 
@@ -19,22 +15,10 @@ class KavakInfoSearchError(str, Enum):
 
 class KavakInfoSearchTool:
     def __init__(self, llm_client: Optional[LLMClientProtocol] = None):
-        """
-        Initialize the tool.
-
-        Args:
-            llm_client: LLM client for summarization
-        """
         self.llm_client = llm_client
         self.kavak_info_service = KavakInfoService()
 
     def get_tool_definition(self) -> Dict[str, Any]:
-        """
-        Get the tool definition for OpenAI API.
-
-        Returns:
-            Dict containing tool definition
-        """
         return {
             "type": "function",
             "function": {
@@ -75,17 +59,6 @@ class KavakInfoSearchTool:
         }
 
     def _summarize_results(self, results: List[Any], query: str, model: str) -> str:
-        """
-        Summarize search results focusing on the client's query and the synthesized answer.
-
-        Args:
-            results: List of search results
-            query: Original client query
-            model: OpenAI model to use for summarization
-
-        Returns:
-            str: Focused summary with the key points and direct response
-        """
         snippets = [res.text for res in results[:3]]
         content = "\n".join(snippets)
         summary_prompt = prompt_manager.get_kavak_info_summary_prompt(query, content)
@@ -110,15 +83,6 @@ class KavakInfoSearchTool:
             return f"Consulta: \"{query}\"\nInformación encontrada:\n{items}"
 
     def execute(self, args: Dict[str, Any]) -> str:
-        """
-        Execute the Kavak info search tool.
-
-        Args:
-            args: Tool arguments containing 'query' and optional 'max_results'
-
-        Returns:
-            str: Summarized search results
-        """
         try:
             query = args.get('query', '')
             max_results = args.get('max_results', MAX_RESULTS_DEFAULT)

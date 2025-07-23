@@ -1,7 +1,3 @@
-"""
-Tool for catalog search functionality.
-"""
-
 import json
 from typing import Dict, Any, List, Optional
 from pydantic import BaseModel, Field
@@ -24,24 +20,10 @@ class CarFilters(BaseModel):
 
 
 class CatalogSearchTool:
-    """Tool for searching cars in the catalog."""
-
     def __init__(self, llm_client: Optional[LLMClientProtocol] = None):
-        """
-        Initialize the tool.
-
-        Args:
-            llm_client: LLM client for data normalization
-        """
         self.llm_client = llm_client
 
     def get_tool_definition(self) -> Dict[str, Any]:
-        """
-        Get the tool definition for OpenAI API.
-
-        Returns:
-            Dict containing tool definition
-        """
         return {
             "type": "function",
             "function": {
@@ -82,15 +64,6 @@ class CatalogSearchTool:
         }
 
     def _normalize_filters(self, args: Dict[str, Any], model: str) -> Dict[str, Any]:
-        """
-        Normalize filters using LLM.
-
-        Args:
-            args: Raw filter arguments
-
-        Returns:
-            Dict: Normalized filters
-        """
         if not self.llm_client:
             return args
 
@@ -120,18 +93,8 @@ class CatalogSearchTool:
             return args
 
     def _convert_tool_args_to_filters(self, args: dict) -> dict:
-        """
-        Convert tool arguments to search filters.
-
-        Args:
-            args: Tool call arguments
-
-        Returns:
-            dict: Search filters
-        """
         filters = {}
 
-        # Convert individual parameters
         if args.get('make'):
             filters['make'] = args['make']
         if args.get('model'):
@@ -143,7 +106,6 @@ class CatalogSearchTool:
         if args.get('car_play') is not None:
             filters['car_play'] = args['car_play']
 
-        # Convert range parameters
         if args.get('year') and isinstance(args['year'], list) and len(args['year']) == 2:
             filters['year'] = args['year']
 
@@ -156,16 +118,6 @@ class CatalogSearchTool:
         return filters
 
     def _search_cars_regular(self, filters: dict | None = None, limit: int = 5) -> List[Dict[str, Any]]:
-        """
-        Search cars using regular SQL queries with filters.
-
-        Args:
-            filters: Optional filters for search
-            limit: Maximum number of results to return
-
-        Returns:
-            List[Dict[str, Any]]: List of car results
-        """
         try:
             from sqlalchemy import text
             from db.session import SessionLocal
@@ -248,7 +200,6 @@ class CatalogSearchTool:
                 base_sql += " ORDER BY year DESC LIMIT :limit"
             params['limit'] = limit
             print(f"🔍 Query final ", base_sql, "con parámetros:", params)
-            # Execute query
             session = SessionLocal()
 
             try:
@@ -281,15 +232,6 @@ class CatalogSearchTool:
             return []
 
     def _format_car_search_results(self, cars: List[Dict[str, Any]]) -> str:
-        """
-        Format car search results into a readable string.
-
-        Args:
-            cars: List of car dictionaries
-
-        Returns:
-            str: Formatted results string
-        """
         if not cars:
             return "No se encontraron autos que coincidan con tu búsqueda."
 
@@ -310,29 +252,16 @@ class CatalogSearchTool:
             result_lines.append(f"   Kilometraje: {car['km']:,} km")
             result_lines.append(f"   Características: {features_str}")
             result_lines.append(f"   Descripción: {car['descripcion']}")
-            # Solo mostrar relevancia si existe (búsqueda semántica)
             if 'similarity_score' in car:
                 result_lines.append(f"   Relevancia: {car['similarity_score']:.4f}")
 
         return "\n".join(result_lines)
 
     def execute(self, args: Dict[str, Any], limit: 5) -> str:
-        """
-        Execute the catalog search tool.
-
-        Args:
-            args: Tool arguments containing search filters
-            limit: Maximum number of results to return
-
-        Returns:
-            str: Formatted search results
-        """
         try:
 
-            # Normalize filters using specialized LLM
             normalized_args = self._normalize_filters(args, model="gpt-4o-mini")
 
-            # Convert normalized args to search filters
             if normalized_args is None:
                 search_filters = {}
             elif isinstance(normalized_args, CarFilters):
@@ -345,7 +274,6 @@ class CatalogSearchTool:
                 limit=limit
             )
 
-            # Format results
             formatted_results = self._format_car_search_results(search_results)
 
             return formatted_results

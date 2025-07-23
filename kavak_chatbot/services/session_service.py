@@ -2,6 +2,7 @@
 Session management service.
 """
 
+import logging
 from typing import Optional
 from uuid import UUID
 from datetime import datetime
@@ -11,6 +12,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from kavak_chatbot.models.schemas.chat_session import ChatSession
 from kavak_chatbot.models.db.chat_session import ChatSessionDB
 from db.session import SessionLocal
+
+logger = logging.getLogger(__name__)
 
 class SessionService:
     def _to_schema(self, db_session: ChatSessionDB) -> ChatSession:
@@ -36,7 +39,7 @@ class SessionService:
                 )
 
                 if db_session:
-                    print(f"DEBUG: Found existing active session: {db_session.id}")
+                    logger.debug(f"Found existing active session: {db_session.id}")
                     return self._to_schema(db_session)
                 else:
                     # Create new session
@@ -48,11 +51,11 @@ class SessionService:
                     session.add(new_session)
                     session.commit()
                     session.refresh(new_session)
-                    print(f"DEBGU: Created new chat session: {new_session.id}")
+                    logger.info(f"Created new chat session: {new_session.id}")
                     return self._to_schema(new_session)
 
         except SQLAlchemyError as e:
-            print(f"❌ Error in get_or_create_session: {e}")
+            logger.error(f"Error in get_or_create_session: {e}")
             raise
 
     def get_active_session(self, user_id: UUID) -> Optional[ChatSession]:
@@ -70,7 +73,7 @@ class SessionService:
                 return self._to_schema(db_session) if db_session else None
 
         except SQLAlchemyError as e:
-            print(f"❌ Error in get_active_session: {e}")
+            logger.error(f"Error in get_active_session: {e}")
             raise
 
     def create_session(self, user_id: UUID, agent_id: Optional[UUID] = None) -> ChatSession:
@@ -85,11 +88,11 @@ class SessionService:
                 session.add(new_session)
                 session.commit()
                 session.refresh(new_session)
-                print(f"🆕 Created new chat session: {new_session.id}")
+                logger.info(f"Created new chat session: {new_session.id}")
                 return self._to_schema(new_session)
 
         except SQLAlchemyError as e:
-            print(f"❌ Error in create_session: {e}")
+            logger.error(f"Error in create_session: {e}")
             raise
 
     def end_session(self, session_id: UUID) -> bool:
@@ -100,14 +103,14 @@ class SessionService:
                 if db_session:
                     db_session.ended_at = datetime.now()
                     session.commit()
-                    print(f"✅ Session {session_id} ended successfully")
+                    logger.info(f"Session {session_id} ended successfully")
                     return True
                 else:
-                    print(f"❌ Session {session_id} not found")
+                    logger.warning(f"Session {session_id} not found")
                     return False
 
         except SQLAlchemyError as e:
-            print(f"❌ Error in end_session: {e}")
+            logger.error(f"Error in end_session: {e}")
             raise
 
     def get_session_by_id(self, session_id: UUID) -> Optional[ChatSession]:
@@ -118,7 +121,7 @@ class SessionService:
                 return self._to_schema(db_session) if db_session else None
 
         except SQLAlchemyError as e:
-            print(f"❌ Error in get_session_by_id: {e}")
+            logger.error(f"Error in get_session_by_id: {e}")
             raise
 
     def get_user_sessions(self, user_id: UUID, include_ended: bool = True) -> list[ChatSession]:
@@ -136,5 +139,5 @@ class SessionService:
                 return [self._to_schema(session) for session in db_sessions]
 
         except SQLAlchemyError as e:
-            print(f"❌ Error in get_user_sessions: {e}")
+            logger.error(f"Error in get_user_sessions: {e}")
             raise

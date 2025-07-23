@@ -1,8 +1,4 @@
-"""
-Tool for calculating car financing plans.
-"""
-
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 from enum import Enum
 
 class CarFinancialError(str, Enum):
@@ -14,18 +10,11 @@ class CarFinancialError(str, Enum):
 
 class CarFinancialTool:
     def __init__(self):
-        """Initialize the tool."""
         self.annual_interest_rate = 0.10  # 10% annual interest rate
         self.min_years = 3
         self.max_years = 6
 
     def get_tool_definition(self) -> Dict[str, Any]:
-        """
-        Get the tool definition for OpenAI API.
-
-        Returns:
-            Dict containing tool definition
-        """
         return {
             "type": "function",
             "function": {
@@ -59,38 +48,16 @@ class CarFinancialTool:
         }
 
     def calculate_monthly_payment(self, principal: float, annual_rate: float, years: int) -> float:
-        """
-        Calculate monthly payment using the standard loan formula.
-
-        Args:
-            principal: Loan amount
-            annual_rate: Annual interest rate (as decimal)
-            years: Loan term in years
-
-        Returns:
-            Monthly payment amount
-        """
         monthly_rate = annual_rate / 12
         num_payments = years * 12
 
         if monthly_rate == 0:
             return principal / num_payments
 
-        # Standard loan payment formula
         monthly_payment = principal * (monthly_rate * (1 + monthly_rate) ** num_payments) / ((1 + monthly_rate) ** num_payments - 1)
         return monthly_payment
 
     def execute(self, args: Dict[str, Any], user_id: str) -> str:
-        """
-        Execute the tool.
-
-        Args:
-            args: Tool arguments containing car_price, down_payment, and financing_years
-            user_id: User ID (not used in this tool)
-
-        Returns:
-            str: Formatted financing plan
-        """
         try:
             car_price = args.get("car_price")
             down_payment = args.get("down_payment")
@@ -98,8 +65,6 @@ class CarFinancialTool:
 
             if not all([car_price is not None, down_payment is not None, financing_years is not None]):
                 return CarFinancialError.MISSING_PARAMS.value
-
-            # Type conversion and validation
             try:
                 car_price = float(car_price)  # type: ignore
                 down_payment = float(down_payment)  # type: ignore
@@ -116,13 +81,11 @@ class CarFinancialTool:
             if financing_years < self.min_years or financing_years > self.max_years:
                 return CarFinancialError.INVALID_YEARS.value.format(min_years=self.min_years, max_years=self.max_years)
 
-            # Calculate financing details
             loan_amount = car_price - down_payment
             monthly_payment = self.calculate_monthly_payment(loan_amount, self.annual_interest_rate, financing_years)
             total_payments = monthly_payment * financing_years * 12
             total_interest = total_payments - loan_amount
 
-            # Format the response
             response = f"""
                 🚗 **PLAN DE FINANCIAMIENTO AUTOMOTRIZ de Kavak**
                 

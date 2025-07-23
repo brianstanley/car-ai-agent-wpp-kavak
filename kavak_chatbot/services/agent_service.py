@@ -131,7 +131,6 @@ class AgentService:
 
     def run(self, query: str, chat_session_id: str) -> str:
         try:
-            # print(f"Chat Session ID: {chat_session_id}")
             memory_id = self._validate_session_exists(chat_session_id)
 
             messages = self._build_prompt_messages(query, memory_id)
@@ -190,19 +189,15 @@ class AgentService:
 
     def _validate_session_exists(self, chat_session_id: str) -> str:
         try:
-            # Validate UUID format
             session_uuid = UUID(chat_session_id)
 
-            # Use injected session_service to validate session exists
             if self.session_service:
                 session = self.session_service.get_session_by_id(session_uuid)
                 if session:
-                    # print(f"   Session validated: {session.id}")
                     return chat_session_id  # Use as memory_id
                 else:
                     raise ValueError(f"Session {chat_session_id} does not exist")
             else:
-                # Fallback if session_service not available
                 logger.debug("SessionService not available, skipping validation")
                 return chat_session_id
 

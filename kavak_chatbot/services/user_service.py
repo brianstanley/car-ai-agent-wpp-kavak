@@ -2,6 +2,7 @@
 User management service.
 """
 
+import logging
 from enum import Enum
 from typing import Optional
 
@@ -13,6 +14,8 @@ from db.config import Config
 from db.session import SessionLocal
 from kavak_chatbot.models.db import UserDB
 from kavak_chatbot.models.schemas.user import User
+
+logger = logging.getLogger(__name__)
 
 
 class UserServiceError(str, Enum):
@@ -31,7 +34,6 @@ class UserService:
     def __init__(self):
         self.connection_string = Config.DATABASE_URL
 
-    # Convert userDb to Pydantic schema
     def _to_schema(self, db_user: UserDB) -> User:
         return User(
             id=db_user.id,
@@ -56,13 +58,12 @@ class UserService:
             session.refresh(new_user)
             return self._to_schema(new_user)
 
-    #update user name
     def update_user_name(self, id: str, name: str) -> Optional[User]:
         try:
             with SessionLocal() as session:
                 db_user = session.scalar(select(UserDB).where(UserDB.id == id))
                 if not db_user:
-                    print(UserServiceError.USER_NOT_FOUND.value.format(id=id))
+                    logger.warning(UserServiceError.USER_NOT_FOUND.value.format(id=id))
                     return None
 
                 db_user.name = name
@@ -71,7 +72,7 @@ class UserService:
 
                 return self._to_schema(db_user)
         except SQLAlchemyError as e:
-            print(UserServiceError.ERROR_UPDATE_NAME.value.format(error=e))
+            logger.error(UserServiceError.ERROR_UPDATE_NAME.value.format(error=e))
             raise
 
     def update_preferences(self, id: str, preferences: dict) -> Optional[User]:
@@ -79,7 +80,7 @@ class UserService:
             with SessionLocal() as session:
                 db_user = session.scalar(select(UserDB).where(UserDB.id == id))
                 if not db_user:
-                    print(UserServiceError.USER_NOT_FOUND.value.format(id=id))
+                    logger.warning(UserServiceError.USER_NOT_FOUND.value.format(id=id))
                     return None
 
                 current = db_user.preferences or {}
@@ -96,7 +97,7 @@ class UserService:
 
                 return self._to_schema(db_user)
         except SQLAlchemyError as e:
-            print(UserServiceError.ERROR_UPDATE_PREFS.value.format(error=e))
+            logger.error(UserServiceError.ERROR_UPDATE_PREFS.value.format(error=e))
             raise
 
     def get_user_by_phone(self, phone_number: str) -> Optional[User]:
@@ -105,7 +106,7 @@ class UserService:
                 db_user = session.scalar(select(UserDB).where(UserDB.phone_number == phone_number))
                 return self._to_schema(db_user) if db_user else None
         except SQLAlchemyError as e:
-            print(UserServiceError.ERROR_GET_BY_PHONE.value.format(error=e))
+            logger.error(UserServiceError.ERROR_GET_BY_PHONE.value.format(error=e))
             raise
 
     def get_all_users(self) -> list[User]:
@@ -115,7 +116,7 @@ class UserService:
                 db_users = session.scalars(select(UserDB)).all()
                 return [self._to_schema(user) for user in db_users]
         except SQLAlchemyError as e:
-            print(UserServiceError.ERROR_GET_ALL.value.format(error=e))
+            logger.error(UserServiceError.ERROR_GET_ALL.value.format(error=e))
             raise
 
     def get_user_by_id(self, user_id: str) -> Optional[User]:
@@ -126,10 +127,10 @@ class UserService:
                 db_user = session.scalar(select(UserDB).where(UserDB.id == UUID(user_id)))
                 return self._to_schema(db_user) if db_user else None
         except SQLAlchemyError as e:
-            print(UserServiceError.ERROR_GET_BY_ID.value.format(error=e))
+            logger.error(UserServiceError.ERROR_GET_BY_ID.value.format(error=e))
             raise
         except ValueError as e:
-            print(UserServiceError.INVALID_UUID.value.format(error=e))
+            logger.error(UserServiceError.INVALID_UUID.value.format(error=e))
             raise
 
     def update_user(self, user_id: str, name: Optional[str] = None, preferences: Optional[dict] = None) -> Optional[User]:
@@ -139,7 +140,7 @@ class UserService:
             with SessionLocal() as session:
                 db_user = session.scalar(select(UserDB).where(UserDB.id == UUID(user_id)))
                 if not db_user:
-                    print(UserServiceError.USER_NOT_FOUND.value.format(id=user_id))
+                    logger.warning(UserServiceError.USER_NOT_FOUND.value.format(id=user_id))
                     return None
                 # Update name if provided
                 if name is not None:
@@ -158,10 +159,10 @@ class UserService:
                 session.refresh(db_user)
                 return self._to_schema(db_user)
         except SQLAlchemyError as e:
-            print(UserServiceError.ERROR_UPDATE_USER.value.format(error=e))
+            logger.error(UserServiceError.ERROR_UPDATE_USER.value.format(error=e))
             raise
         except ValueError as e:
-            print(UserServiceError.INVALID_UUID.value.format(error=e))
+            logger.error(UserServiceError.INVALID_UUID.value.format(error=e))
             raise
 
     def delete_user(self, user_id: str) -> bool:
@@ -171,15 +172,15 @@ class UserService:
             with SessionLocal() as session:
                 db_user = session.scalar(select(UserDB).where(UserDB.id == UUID(user_id)))
                 if not db_user:
-                    print(UserServiceError.USER_NOT_FOUND.value.format(id=user_id))
+                    logger.warning(UserServiceError.USER_NOT_FOUND.value.format(id=user_id))
                     return False
                 session.delete(db_user)
                 session.commit()
                 return True
         except SQLAlchemyError as e:
-            print(UserServiceError.ERROR_DELETE_USER.value.format(error=e))
+            logger.error(UserServiceError.ERROR_DELETE_USER.value.format(error=e))
             raise
         except ValueError as e:
-            print(UserServiceError.INVALID_UUID.value.format(error=e))
+            logger.error(UserServiceError.INVALID_UUID.value.format(error=e))
             raise
 
