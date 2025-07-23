@@ -1,7 +1,3 @@
-"""
-Seeders for creating test data in the database.
-"""
-
 import logging
 import os
 from uuid import uuid4
@@ -24,11 +20,9 @@ class DatabaseSeeder:
         self.connection_string = Config.DATABASE_URL
 
     def get_connection(self):
-        """Get a database connection."""
         return psycopg2.connect(self.connection_string)
 
     def create_car_sales_persona(self) -> Persona:
-        """Create a car sales persona with generated ID."""
         try:
             with self.get_connection() as conn:
                 with conn.cursor(cursor_factory=RealDictCursor) as cursor:
@@ -81,14 +75,11 @@ class DatabaseSeeder:
             raise
 
     def create_car_sales_agent(self) -> Agent:
-        """Create a car sales MemAgent with hardcoded ID from environment."""
         try:
             with self.get_connection() as conn:
                 with conn.cursor(cursor_factory=RealDictCursor) as cursor:
-                    # Ensure persona exists
                     persona = self.create_car_sales_persona()
 
-                    # Check if agent already exists
                     cursor.execute(
                         "SELECT id, instruction, application_mode, persona_id, tools "
                         "FROM agents WHERE id = %s",
@@ -135,7 +126,6 @@ class DatabaseSeeder:
             raise
 
     def create_test_user(self) -> dict:
-        """Create a test user with phone_number '1111' and generated ID."""
         try:
             with self.get_connection() as conn:
                 with conn.cursor(cursor_factory=RealDictCursor) as cursor:

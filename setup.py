@@ -1,8 +1,3 @@
-#!/usr/bin/env python3
-"""
-Setup script for the chatbot memory system.
-This script helps with initial project setup and verification.
-"""
 import logging
 
 import click

@@ -205,7 +205,7 @@ Para poder interactuar con el agente conversacional de Kavak ya sea para desarro
 
 
 ```bash
-docker-compose exec api python chat.py
+docker-compose exec api python interactive_chat.py
 ```
 
 Vas a ver un prompt donde puedes escribir mensajes y recibir respuestas del agente. Usa `/quit` o `/exit` para salir del chat.
