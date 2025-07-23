@@ -46,7 +46,7 @@ jobs:
           python setup.py database --recreate
       - name: Run seeders
         run: |
-          python seeders.py
+          python setup.py seeders
       - name: Run tests
         run: |
-          pytest --maxfail=1 --disable-warnings -q 
+          pytest --maxfail=1 --disable-warnings -q

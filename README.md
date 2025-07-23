@@ -56,7 +56,7 @@ Ejecuta los siguientes comandos dentro del contenedor de la API
 docker-compose exec api python setup.py database
 
 # Cargar datos iniciales (agente comercial de ventas)
-docker-compose exec api python setup.py seeders.py
+docker-compose exec api python setup.py seeders
 ```
 
 ### 5. Generar embeddings y cargar información de Kavak
