@@ -10,7 +10,7 @@ A continuación presento los diagramas principales que describen la arquitectura
 
 ![System Design](diagrams/system_design.png)
 
-### Diagrama de Flujo de Prompts
+### Diagrama de Prompts
 
 ![Prompts Diagram](diagrams/prompts_diagram.png)
 
