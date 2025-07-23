@@ -20,7 +20,6 @@ from kavak_chatbot.services.llm_protocol import LLMClientProtocol
 
 logger = logging.getLogger(__name__)
 
-# Configuration constants
 class MemorySummaryConfig:
     """Configuration constants for memory summarization."""
     DEFAULT_MODEL = "gpt-3.5-turbo"
@@ -94,7 +93,6 @@ class MemoryService:
         try:
             messages = []
 
-            # Get conversation summary
             summary = self.get_conversation_summary(chat_session_id)
             if summary and summary.get('text'):
                 # Add summary as a system message at the beginning
@@ -148,24 +146,12 @@ class MemoryService:
             return {}
 
     def get_last_n_messages(self, chat_session_id: UUID, n: int = 10, unsummarized_only: bool = False) -> List[Dict[str, Any]]:
-        """
-        Get the last N messages for a chat session.
-
-        Args:
-            chat_session_id: The ID of the chat session
-            n: Number of messages to retrieve (default: 10)
-            unsummarized_only: If True, only return unsummarized messages (default: False)
-
-        Returns:
-            List of message dictionaries ordered by creation time (oldest first)
-        """
         try:
             with SessionLocal() as session:
                 query = select(ConversationMemoryDB).where(
                     ConversationMemoryDB.chat_session_id == chat_session_id
                 )
 
-                # Add filter for unsummarized messages if requested
                 if unsummarized_only:
                     query = query.where(ConversationMemoryDB.summarized == False)
 
@@ -185,16 +171,6 @@ class MemoryService:
             return []
 
     def get_last_n_summaries(self, chat_session_id: UUID, n: int = 5) -> List[Dict[str, Any]]:
-        """
-        Get the last N summaries for a chat session.
-
-        Args:
-            chat_session_id: The ID of the chat session.
-            n: Number of summaries to retrieve.
-
-        Returns:
-            List of dictionaries with the summaries.
-        """
         try:
             with SessionLocal() as session:
                 db_summaries = session.scalars(
@@ -211,7 +187,6 @@ class MemoryService:
             return []
 
     def _message_to_dict(self, db_message: ConversationMemoryDB) -> Dict[str, Any]:
-        """Convert database message to dictionary."""
         return {
             'id': str(db_message.id),
             'role': db_message.role,
@@ -220,7 +195,6 @@ class MemoryService:
         }
 
     def _summary_to_dict(self, db_summary: SummaryDB) -> Dict[str, Any]:
-        """Convert database summary to dictionary."""
         return {
             'id': str(db_summary.id),
             'text': db_summary.text,
@@ -228,16 +202,6 @@ class MemoryService:
         }
 
     def _get_unsummarized_messages(self, chat_session_id: UUID, limit: Optional[int] = None) -> List[ConversationMemoryDB]:
-        """
-        Get unsummarized messages for a chat session.
-
-        Args:
-            chat_session_id: The ID of the chat session
-            limit: Maximum number of messages to retrieve
-
-        Returns:
-            List of unsummarized messages ordered by creation time (oldest first)
-        """
         try:
             with SessionLocal() as session:
                 query = (
@@ -259,15 +223,6 @@ class MemoryService:
             return []
 
     def _get_or_create_summary(self, chat_session_id: UUID) -> Optional[SummaryDB]:
-        """
-        Get existing summary or create a new one for a chat session.
-
-        Args:
-            chat_session_id: The ID of the chat session
-
-        Returns:
-            SummaryDB object or None if failed
-        """
         try:
             with SessionLocal() as session:
                 # Try to get existing summary
@@ -296,15 +251,6 @@ class MemoryService:
             return None
 
     def _mark_messages_as_summarized(self, message_ids: List[UUID]) -> bool:
-        """
-        Mark messages as summarized.
-
-        Args:
-            message_ids: List of message IDs to mark as summarized
-
-        Returns:
-            True if successful, False otherwise
-        """
         try:
             with SessionLocal() as session:
                 # Get messages and mark them as summarized
@@ -332,10 +278,8 @@ class MemoryService:
                 logger.error(MemoryServiceError.OPENAI_KEY_MISSING.value)
                 return "Error: LLM client not configured"
 
-            # Format messages for summarization
             conversation_text = self._format_messages_for_summary(messages)
 
-            # Get prompt from prompts folder
             prompt = prompt_manager.get_conversation_summary_prompt(
                 old_summary=old_summary or "[NINGUNO]",
                 conversation_text=conversation_text,
@@ -363,15 +307,6 @@ class MemoryService:
             return f"Error generando resumen: {e}"
 
     def _format_messages_for_summary(self, messages: List[ConversationMemoryDB]) -> str:
-        """
-        Format messages for summarization prompt.
-
-        Args:
-            messages: List of messages to format
-
-        Returns:
-            Formatted conversation text
-        """
         formatted_lines = []
 
         for i, msg in enumerate(messages, 1):
@@ -387,21 +322,9 @@ class MemoryService:
         return "\n\n".join(formatted_lines)
 
     def should_summarize_conversation(self, chat_session_id: UUID) -> bool:
-        """
-        Check if conversation should be summarized based on sliding window.
-        Triggers when there are N + tolerance unsummarized messages accumulated.
-
-        Args:
-            chat_session_id: The ID of the chat session
-
-        Returns:
-            True if should summarize, False otherwise
-        """
         try:
-            # Get ALL unsummarized messages (without limit)
             unsummarized_messages = self._get_unsummarized_messages(chat_session_id)
 
-            # Check if we have enough accumulated unsummarized messages to trigger
             trigger_threshold = MemorySummaryConfig.DEFAULT_WINDOW_SIZE + MemorySummaryConfig.DEFAULT_TOLERANCE
 
             logger.debug(f"Unsummarized messages: {len(unsummarized_messages)} (need {trigger_threshold} to trigger)")
@@ -426,7 +349,6 @@ class MemoryService:
         try:
             logger.info(f"Summarizing conversation for session: {chat_session_id}")
 
-            # Get ALL unsummarized messages (without limit)
             all_unsummarized_messages = self._get_unsummarized_messages(chat_session_id)
 
             if not all_unsummarized_messages:
@@ -495,15 +417,6 @@ class MemoryService:
             return False
 
     def get_conversation_summary(self, chat_session_id: UUID) -> Optional[Dict[str, Any]]:
-        """
-        Get the current summary for a chat session.
-
-        Args:
-            chat_session_id: The ID of the chat session
-
-        Returns:
-            Summary dictionary or None if not found
-        """
         try:
             with SessionLocal() as session:
                 summary = session.scalar(
