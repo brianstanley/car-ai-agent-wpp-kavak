@@ -141,3 +141,22 @@ class SessionService:
         except SQLAlchemyError as e:
             logger.error(f"Error in get_user_sessions: {e}")
             raise
+
+    def get_all_sessions(self, limit: int = 50, offset: int = 0, include_ended: bool = True) -> list[ChatSession]:
+        """Get all sessions with pagination."""
+        try:
+            with SessionLocal() as session:
+                query = select(ChatSessionDB)
+
+                if not include_ended:
+                    query = query.where(ChatSessionDB.ended_at.is_(None))
+
+                query = query.order_by(ChatSessionDB.started_at.desc())
+                query = query.offset(offset).limit(limit)
+
+                db_sessions = session.scalars(query).all()
+                return [self._to_schema(session) for session in db_sessions]
+
+        except SQLAlchemyError as e:
+            logger.error(f"Error in get_all_sessions: {e}")
+            raise

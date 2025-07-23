@@ -38,7 +38,7 @@ def main():
     user = user_service.get_or_create_user("1111")
     session_info = chat_service.initialize_chat("1111")
     chat_session_id = str(session_info['session'].id)
-    memory_agent_id = "22222222-2222-2222-2222-222222222222"  # ID fijo de MemAgent del seeder
+    memory_agent_id = os.getenv("DEFAULT_KAVAK_AGENT_ID", "22222222-2222-2222-2222-222222222222")
 
     # Fetch persona and instruction for the memory agent
     persona, instruction = AgentService.fetch_memory_agent_data(memory_agent_id)

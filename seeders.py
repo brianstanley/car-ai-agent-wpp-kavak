@@ -3,6 +3,8 @@ Seeders for creating test data in the database.
 """
 
 import logging
+import os
+from uuid import uuid4
 
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -14,10 +16,8 @@ from kavak_chatbot.prompts.prompt_manager import prompt_manager
 
 logger = logging.getLogger(__name__)
 
-# Fixed IDs for testing
-TEST_PERSONA_ID = "11111111-1111-1111-1111-111111111111"
-TEST_AGENT_ID   = "22222222-2222-2222-2222-222222222222"
-TEST_USER_ID    = "33333333-3333-3333-3333-333333333333"
+# Agent ID from environment variable
+DEFAULT_KAVAK_AGENT_ID = os.getenv("DEFAULT_KAVAK_AGENT_ID", "22222222-2222-2222-2222-222222222222")
 
 
 class DatabaseSeeder:
@@ -29,15 +29,15 @@ class DatabaseSeeder:
         return psycopg2.connect(self.connection_string)
 
     def create_car_sales_persona(self) -> Persona:
-        """Create a car sales persona."""
+        """Create a car sales persona with generated ID."""
         try:
             with self.get_connection() as conn:
                 with conn.cursor(cursor_factory=RealDictCursor) as cursor:
-                    # Check if persona already exists
+                    # Check if persona already exists by name and role
                     cursor.execute(
                         "SELECT id, name, role, goals, background "
-                        "FROM personas WHERE id = %s",
-                        (TEST_PERSONA_ID,)
+                        "FROM personas WHERE name = %s AND role = %s",
+                        ('Carlos', 'Representante de ventas de Kavak')
                     )
                     persona_data = cursor.fetchone()
 
@@ -51,13 +51,16 @@ class DatabaseSeeder:
                             background=persona_data.get('background')
                         )
 
-                    # Create new persona with fixed ID
+                    # Generate new UUID for persona
+                    persona_id = str(uuid4())
+                    
+                    # Create new persona with generated ID
                     cursor.execute("""
                         INSERT INTO personas (id, name, role, goals, background)
                         VALUES (%s, %s, %s, %s, %s)
                         RETURNING id, name, role, goals, background
                     """, (
-                        TEST_PERSONA_ID,
+                        persona_id,
                         'Carlos',
                         'Representante de ventas de Kavak',
                         'Ayudar a cada cliente a encontrar el auto seminuevo ideal de manera fácil y confiable',
@@ -65,7 +68,7 @@ class DatabaseSeeder:
                     ))
                     persona_data = cursor.fetchone()
                     conn.commit()
-                    print("✅ Car sales persona created successfully")
+                    print(f"✅ Car sales persona created successfully with ID: {persona_id}")
                     return Persona(
                         id=persona_data['id'],
                         name=persona_data['name'],
@@ -79,7 +82,7 @@ class DatabaseSeeder:
             raise
 
     def create_car_sales_agent(self) -> Agent:
-        """Create a car sales MemAgent."""
+        """Create a car sales MemAgent with hardcoded ID from environment."""
         try:
             with self.get_connection() as conn:
                 with conn.cursor(cursor_factory=RealDictCursor) as cursor:
@@ -90,7 +93,7 @@ class DatabaseSeeder:
                     cursor.execute(
                         "SELECT id, instruction, application_mode, persona_id, tools "
                         "FROM agents WHERE id = %s",
-                        (TEST_AGENT_ID,)
+                        (DEFAULT_KAVAK_AGENT_ID,)
                     )
                     agent_data = cursor.fetchone()
 
@@ -112,14 +115,14 @@ class DatabaseSeeder:
                         VALUES (%s, %s, %s, %s)
                         RETURNING id, instruction, application_mode, persona_id, tools
                     """, (
-                        TEST_AGENT_ID,
+                        DEFAULT_KAVAK_AGENT_ID,
                         instruction,
                         "assistant",
                         str(persona.id)
                     ))
                     agent_data = cursor.fetchone()
                     conn.commit()
-                    print("✅ Car sales agent created successfully")
+                    print(f"✅ Car sales agent created successfully with ID: {DEFAULT_KAVAK_AGENT_ID}")
                     return Agent(
                         id=agent_data['id'],
                         instruction=agent_data['instruction'],
@@ -133,7 +136,7 @@ class DatabaseSeeder:
             raise
 
     def create_test_user(self) -> dict:
-        """Create a test user with phone_number '1111'."""
+        """Create a test user with phone_number '1111' and generated ID."""
         try:
             with self.get_connection() as conn:
                 with conn.cursor(cursor_factory=RealDictCursor) as cursor:
@@ -145,17 +148,21 @@ class DatabaseSeeder:
                     existing_user = cursor.fetchone()
 
                     if existing_user:
+                        print("✅ Test user already exists")
                         return existing_user
                     else:
-                        # Create new user with the fixed ID
+                        # Generate new UUID for user
+                        user_id = str(uuid4())
+                        
+                        # Create new user with generated ID
                         cursor.execute("""
                             INSERT INTO users (id, phone_number)
                             VALUES (%s, %s)
                             RETURNING id, phone_number
-                        """, (TEST_USER_ID, "1111"))
+                        """, (user_id, "1111"))
                         user = cursor.fetchone()
                         conn.commit()
-                        print("✅ Test user created successfully")
+                        print(f"✅ Test user created successfully with ID: {user_id}")
                         return user
 
         except Exception as e:

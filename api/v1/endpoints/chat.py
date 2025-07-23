@@ -42,8 +42,16 @@ class SendMessageResponse(BaseModel):
 @router.post("/sessions", response_model=ChatSessionResponse)
 async def create_chat_session(session_data: ChatSessionCreateRequest) -> ChatSessionResponse:
     try:
+        from uuid import UUID
+        agent_id = None
+        if session_data.agent_id:
+            agent_id = UUID(session_data.agent_id)
+        else:
+            default_agent_id = os.getenv("DEFAULT_KAVAK_AGENT_ID", "22222222-2222-2222-2222-222222222222")
+            agent_id = UUID(default_agent_id)
+
         chat_service = ChatService()
-        session_info = chat_service.initialize_chat(session_data.phone_number)
+        session_info = chat_service.initialize_chat(session_data.phone_number, agent_id)
 
         session = session_info['session']
         return ChatSessionResponse(
@@ -53,6 +61,28 @@ async def create_chat_session(session_data: ChatSessionCreateRequest) -> ChatSes
             started_at=session.started_at.isoformat() if session.started_at else "",
             ended_at=session.ended_at.isoformat() if session.ended_at else None
         )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail="Invalid agent ID format")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/sessions", response_model=List[ChatSessionResponse])
+async def get_all_sessions(limit: int = 50, offset: int = 0, include_ended: bool = True) -> List[ChatSessionResponse]:
+    try:
+        session_service = SessionService()
+        sessions = session_service.get_all_sessions(limit=limit, offset=offset, include_ended=include_ended)
+
+        return [
+            ChatSessionResponse(
+                id=str(session.id),
+                user_id=str(session.user_id),
+                agent_id=str(session.agent_id) if session.agent_id else None,
+                started_at=session.started_at.isoformat() if session.started_at else "",
+                ended_at=session.ended_at.isoformat() if session.ended_at else None
+            )
+            for session in sessions
+        ]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

@@ -75,9 +75,126 @@ docker-compose exec api python setup.py kavak-info-ingestion
 
 La API estará disponible en: http://localhost:8000/api/v1
 
-- Documentación Swagger: http://localhost:8000/docs
-- Documentación ReDoc: http://localhost:8000/redoc
-- Health Check: http://localhost:8000/v1/health
+- **Documentación Swagger**: http://localhost:8000/docs
+- **Documentación ReDoc**: http://localhost:8000/redoc
+- **Health Check**: http://localhost:8000/v1/health
+- **Información de la API**: http://localhost:8000/
+
+## Documentación de la API
+
+### Endpoints Principales
+
+> **Nota**: La API incluye endpoints para gestión completa de sesiones, incluyendo listar todas las sesiones, obtener mensajes específicos y manejar webhooks de WhatsApp.
+
+#### 1. Enviar Mensaje al Agente
+**POST** `/api/v1/chat/send-message`
+
+Envía un mensaje al agente de Kavak y recibe una respuesta.
+
+**Ejemplo de Request:**
+```json
+{
+  "session_id": "fb91b153-86a0-4a17-818e-c44a4c91a4a7",
+  "message": "Hola, estoy buscando un auto usado"
+}
+```
+
+**Ejemplo de Response:**
+```json
+{
+  "success": true,
+  "response": "¡Hola! Soy tu asistente de Kavak. Te ayudo a encontrar el auto perfecto. ¿Qué tipo de vehículo estás buscando?",
+  "session_id": "fb91b153-86a0-4a17-818e-c44a4c91a4a7",
+  "message_id": "msg_123456"
+}
+```
+
+#### 2. Webhook de WhatsApp
+**POST** `/api/v1/whatsapp/webhook`
+
+Endpoint para recibir mensajes de WhatsApp desde Twilio.
+
+**Ejemplo de Request (form-data):**
+```
+Body: "Hola, quiero comprar un auto"
+From: "whatsapp:+525512345678"
+```
+
+**Ejemplo de Response:**
+```json
+{
+  "status": "success",
+  "message": "Mensaje procesado correctamente"
+}
+```
+
+#### 3. Listar Todas las Sesiones
+**GET** `/api/v1/chat/sessions`
+
+Obtiene todas las sesiones de chat con paginación.
+
+**Ejemplo de Request:**
+```
+GET /api/v1/chat/sessions?limit=10&offset=0&include_ended=true
+```
+
+**Ejemplo de Response:**
+```json
+[
+  {
+    "id": "fb91b153-86a0-4a17-818e-c44a4c91a4a7",
+    "user_id": "33333333-3333-3333-3333-333333333333",
+    "agent_id": "22222222-2222-2222-2222-222222222222",
+    "started_at": "2024-01-15T10:30:00Z",
+    "ended_at": null
+  },
+  {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "user_id": "44444444-4444-4444-4444-444444444444",
+    "agent_id": "22222222-2222-2222-2222-222222222222",
+    "started_at": "2024-01-15T09:15:00Z",
+    "ended_at": "2024-01-15T10:00:00Z"
+  }
+]
+```
+
+#### 4. Obtener Mensajes de una Sesión
+**GET** `/api/v1/chat/sessions/{session_id}/messages`
+
+Obtiene todos los mensajes de una sesión de chat específica.
+
+**Ejemplo de Request:**
+```
+GET /api/v1/chat/sessions/fb91b153-86a0-4a17-818e-c44a4c91a4a7/messages
+```
+
+**Ejemplo de Response:**
+```json
+[
+  {
+    "id": "msg_1",
+    "session_id": "fb91b153-86a0-4a17-818e-c44a4c91a4a7",
+    "role": "user",
+    "content": "Hola, estoy buscando un auto usado",
+    "created_at": "2024-01-15T10:30:00Z"
+  },
+  {
+    "id": "msg_2",
+    "session_id": "fb91b153-86a0-4a17-818e-c44a4c91a4a7",
+    "role": "assistant",
+    "content": "¡Hola! Soy tu asistente de Kavak. Te ayudo a encontrar el auto perfecto.",
+    "created_at": "2024-01-15T10:30:05Z"
+  }
+]
+```
+
+### Documentación Completa
+
+Para ver la documentación completa de todos los endpoints disponibles:
+
+- **Swagger UI**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
+
 
 ## Modo Interactivo: Ejecutar el Chat
 
