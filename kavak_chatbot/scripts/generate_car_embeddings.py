@@ -10,8 +10,6 @@ from tqdm import tqdm
 from dotenv import load_dotenv
 from openai import OpenAI
 from sqlalchemy.exc import SQLAlchemyError
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from db.session import SessionLocal
 from kavak_chatbot.models.db import CarDB
 
@@ -137,7 +135,7 @@ def insert_car_to_database(
         session.rollback()
         return False
 
-def process_csv_data():
+def run_parse_cars_to_database():
     print("Generando embeddings de autos...")
 
     # Validate environment
@@ -237,19 +235,3 @@ def process_csv_data():
         sys.exit(1)
     finally:
         session.close()
-
-def main():
-    print("Generador de Embeddings de Autos")
-    print("=" * 50)
-
-    try:
-        process_csv_data()
-    except KeyboardInterrupt:
-        print("\n⏹️ Process interrupted by user")
-        sys.exit(1)
-    except Exception as e:
-        print(f"❌ Unexpected error: {e}")
-        sys.exit(1)
-
-if __name__ == "__main__":
-    main()

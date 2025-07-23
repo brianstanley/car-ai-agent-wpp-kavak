@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Seeders for creating test data in the database.
 """

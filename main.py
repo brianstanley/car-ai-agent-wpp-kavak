@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 FastAPI application with organized API structure and versioning.
 """

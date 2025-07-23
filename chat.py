@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Chat interactivo usando MemAgentService para gestionar la conversación.
 """

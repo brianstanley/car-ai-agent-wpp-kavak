@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Prompt Builder Service for constructing prompts with fluent interface.
 """

@@ -1,9 +1,4 @@
-import sys
-import os
 from dotenv import load_dotenv
-
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from docling.document_converter import DocumentConverter
 from docling_core.transforms.chunker.hybrid_chunker import HybridChunker
 from kavak_chatbot.utils.tokenizer import OpenAITokenizerWrapper
@@ -11,7 +6,7 @@ from kavak_chatbot.services import KavakInfoService
 
 load_dotenv()
 
-def main():
+def run_kavak_info_ingestion():
     """Extract Kavak information and store it in the database."""
     tokenizer = OpenAITokenizerWrapper()
     kavak_service = KavakInfoService()
@@ -66,6 +61,3 @@ def main():
     # Display summary
     all_records = kavak_service.get_all_kavak_info()
     print(f"Total records in database: {len(all_records)}")
-
-if __name__ == "__main__":
-    main()

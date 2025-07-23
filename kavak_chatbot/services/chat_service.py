@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Main manager for chat session initialization and management.
 """

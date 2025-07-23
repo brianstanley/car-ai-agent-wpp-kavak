@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Tool for calculating car financing plans.
 """

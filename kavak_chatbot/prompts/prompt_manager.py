@@ -13,21 +13,24 @@ class PromptManager:
     def __init__(self, prompts_dir: str = None):
         """
         Initialize the prompt manager.
-        
+
         Args:
             prompts_dir: Directory containing prompt text files. Defaults to the same directory as this file.
         """
         if prompts_dir is None:
             prompts_dir = os.path.dirname(os.path.abspath(__file__))
-        
+
         self.prompts_dir = Path(prompts_dir)
         self._prompts: Dict[str, str] = {}
         self._load_prompts()
 
     def _load_prompts(self):
         """Load all prompt text files from the prompts directory."""
-        for txt_file in self.prompts_dir.glob("*.txt"):
-            prompt_name = txt_file.stem  # filename without extension
+        from pathlib import Path
+        path_data = Path("data")
+        path_prompts = path_data / "prompts"
+        for txt_file in path_prompts.iterdir():
+            prompt_name = txt_file.stem
             try:
                 with open(txt_file, 'r', encoding='utf-8') as f:
                     self._prompts[prompt_name] = f.read().strip()
@@ -60,7 +63,7 @@ class PromptManager:
         prompt = self.get_prompt(prompt_name)
         if prompt is None:
             return None
-        
+
         try:
             return prompt.format(**kwargs)
         except KeyError as e:
@@ -116,9 +119,9 @@ class PromptManager:
         Returns:
             str: The conversation summary prompt
         """
-        return self.get_formatted_prompt('conversation_summary', 
-                                       old_summary=old_summary, 
-                                       conversation_text=conversation_text, 
+        return self.get_formatted_prompt('conversation_summary',
+                                       old_summary=old_summary,
+                                       conversation_text=conversation_text,
                                        summary_length_words=summary_length_words)
 
     def get_conversation_summary_system_prompt(self) -> str:

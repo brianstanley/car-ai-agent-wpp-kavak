@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Memory Management Service
 Handles storing and retrieving conversation messages.

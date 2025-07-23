@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Agent service for managing conversation with LLM.
 """

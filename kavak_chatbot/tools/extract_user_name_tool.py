@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Tool for extracting and saving user names.
 """

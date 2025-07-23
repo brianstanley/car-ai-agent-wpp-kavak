@@ -20,6 +20,8 @@ A continuación presento los diagramas principales que describen la arquitectura
 
 - Docker
 - Docker Compose
+- Python 3.8+ (para desarrollo local)
+- Click (incluido en requirements.txt)
 
 ## Instalación
 
@@ -50,21 +52,26 @@ docker-compose up --build -d
 Ejecuta los siguientes comandos dentro del contenedor de la API
 
 ```bash
-docker-compose exec api python setup.py
+# Crear tablas de la base de datos
+docker-compose exec api python setup.py database
 
+# Cargar datos iniciales (agente comercial de ventas)
 docker-compose exec api python seeders.py
 ```
-Esto generara un agente comercial de ventas de Kavak.
 
-Luego para generar los embeddings de los autos y cargar la información de Kavak:
+### 5. Generar embeddings y cargar información de Kavak
+
+Para generar los embeddings de los autos y cargar la información de Kavak:
 
 ```bash
-docker-compose exec api python scripts/generate_car_embeddings.py
+# Generar embeddings de autos desde CSV
+docker-compose exec api python setup.py generate-car-embeddings
 
-docker-compose exec api python scripts/kavak_info_ingestion.py
+# Extraer información de Kavak desde el sitio web
+docker-compose exec api python setup.py kavak-info-ingestion
 ```
 
-### 5. Acceso a la API
+### 6. Acceso a la API
 
 La API estará disponible en: http://localhost:8000/api/v1
 
@@ -72,17 +79,42 @@ La API estará disponible en: http://localhost:8000/api/v1
 - Documentación ReDoc: http://localhost:8000/redoc
 - Health Check: http://localhost:8000/v1/health
 
-### 6. (Opcional) Recrear la base de datos y el contenedor
+### 7. (Opcional) Recrear la base de datos
 
-Si necesitas eliminar y volver a crear la base de datos y el contenedor (por ejemplo, para un entorno limpio), ejecuta:
+Si necesitas eliminar y volver a crear la base de datos (por ejemplo, para un entorno limpio), ejecuta:
 
 ```bash
-docker-compose exec api python setup.py --recreate
+docker-compose exec api python setup.py database --recreate
 ```
 
-Esto eliminará el contenedor y el volumen de la base de datos, y los creará nuevamente desde cero.
+Esto eliminará todas las tablas y las creará nuevamente desde cero.
 
 ## Comandos útiles
+
+### Setup.py Commands
+
+El script `setup.py` ahora usa Click y proporciona varios comandos útiles:
+
+```bash
+# Ver todos los comandos disponibles
+docker-compose exec api python setup.py --help
+
+# Comandos de base de datos
+docker-compose exec api python setup.py database              # Crear tablas
+docker-compose exec api python setup.py database --recreate  # Recrear todas las tablas
+
+# Generar embeddings y datos
+docker-compose exec api python setup.py generate-car-embeddings  # Generar embeddings de autos
+docker-compose exec api python setup.py kavak-info-ingestion     # Extraer info de Kavak
+
+# Ver ayuda específica de cada comando
+docker-compose exec api python setup.py database --help
+docker-compose exec api python setup.py generate-car-embeddings --help
+docker-compose exec api python setup.py kavak-info-ingestion --help
+```
+
+### Otros comandos útiles
+
 - Ejecutar seeders manualmente:
   ```bash
   docker-compose exec api python seeders.py
