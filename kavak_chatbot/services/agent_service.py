@@ -24,7 +24,7 @@ from kavak_chatbot.services.llm_protocol import LLMClientProtocol
 
 
 class AgentConfig:
-    DEFAULT_MODEL = "gpt-4o"
+    DEFAULT_MODEL = os.getenv("CHAT_ASSISTANT_MODEL")
     DEFAULT_MAX_TOKENS = 1000
     DEFAULT_TEMPERATURE = 0.4
     MAX_CONVERSATION_STEPS = 5
@@ -33,8 +33,6 @@ class AgentConfig:
     PREFERENCES_SECTION_WIDTH = 50
 
 class AgentService:
-    """Memory Agent for running agents with memory and conversation context."""
-
     def __init__(
         self,
         persona,
@@ -135,7 +133,6 @@ class AgentService:
 
             messages = self._build_prompt_messages(query, memory_id)
 
-            # Record user's query in memory
             self._record_user_query(query, chat_session_id)
 
             response = self._execute_main_loop(
@@ -146,7 +143,6 @@ class AgentService:
                 user_id=self.user.id
             )
 
-            # Record assistant response in memory
             if response:
                 self._record_assistant_response(response, chat_session_id)
 
@@ -156,7 +152,7 @@ class AgentService:
             return response or "No response received from agent"
 
         except Exception as e:
-            error_msg = f"Error running MemAgent: {e}"
+            error_msg = f"Error running Agent: {e}"
             logger.error(error_msg)
             return error_msg
 

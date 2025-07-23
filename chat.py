@@ -11,7 +11,7 @@ from kavak_chatbot.services import UserService, ChatService, MemoryService, Agen
 from kavak_chatbot.services.llm_openai_adapter import OpenAIClientAdapter
 from kavak_chatbot.services.prompt_builder import PromptBuilder
 from kavak_chatbot.utils import OpenAITokenizerWrapper, truncate_text_to_max_tokens
-from logging_config import setup_logging
+from config.logging_config import setup_logging
 
 load_dotenv()
 setup_logging()
@@ -37,7 +37,7 @@ def main():
 
     session_info = chat_service.initialize_chat(os.getenv("DEFAULT_DEMO_PHONE_NUMBER"), agent_id)
     user = session_info.user
-    chat_session_id = session_info.session.id
+    chat_session_id = str(session_info.session.id)
 
     persona, instruction = AgentService.fetch_memory_agent_data(agent_id)
     if not instruction:

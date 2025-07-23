@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.v1 import api_v1_router
-from logging_config import setup_logging
+from config.logging_config import setup_logging
 
 load_dotenv()
 

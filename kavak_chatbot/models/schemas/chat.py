@@ -2,7 +2,7 @@
 Chat session and message schemas.
 """
 
-from typing import List, Optional
+from typing import Optional
 from pydantic import BaseModel
 
 from .user import User
