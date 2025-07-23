@@ -15,13 +15,36 @@ A continuación presento los diagramas principales que describen la arquitectura
 ![Prompts Diagram](diagrams/prompts_diagram.png)
 
 
+## Variables de Entorno (env.example)
+
+Asegúrate de completar el archivo `.env` con las siguientes variables (puedes copiarlo desde `env.example`):
+
+| Variable                   | Descripción                                                      |
+|----------------------------|------------------------------------------------------------------|
+| LOG_LEVEL                  | Nivel de log (ej: INFO, DEBUG)                                   |
+| DATABASE_URL               | Cadena de conexión a la base de datos PostgreSQL                 |
+| OPENAI_API_KEY             | API Key de OpenAI para el modelo LLM                             |
+| TWILIO_ACCOUNT_SID         | SID de cuenta Twilio (para WhatsApp)                             |
+| TWILIO_AUTH_TOKEN          | Token de autenticación Twilio                                    |
+| TWILIO_WHATSAPP_NUMBER     | Número de WhatsApp de Twilio                                     |
+| MAX_USER_QUERY_TOKENS      | Máximo de tokens por consulta de usuario                         |
+| DEFAULT_KAVAK_AGENT_ID     | UUID del agente comercial por defecto                            |
+| DEFAULT_DEMO_PHONE_NUMBER  | Teléfono demo para pruebas                                       |
+| CHAT_ASSISTANT_MODEL       | Modelo de OpenAI a utilizar por el agente comercial (ej: gpt-4o) |
+
+Completa los valores según tu entorno y credenciales.
+
+## Roadmap y Backlog
+
+Como parte de los entregables se puede el roadmap y backlog del proyecto en el siguiente documento:
+
+[Roadmap y Backlog (PDF)](Roadmap.pdf)
 
 ## Requisitos
 
 - Docker
 - Docker Compose
-- Python 3.8+ (para desarrollo local)
-- Click (incluido en requirements.txt)
+- Python 3.12+ (para desarrollo local)
 
 ## Instalación
 
@@ -47,7 +70,7 @@ docker-compose up --build -d
 ```
 
 
-### 4. Inicializar la base de datos y cargar agente de ventas.
+### 4. Inicializar la base de datos y cargar agente comercial.
 
 Ejecuta los siguientes comandos dentro del contenedor de la API
 
@@ -55,13 +78,13 @@ Ejecuta los siguientes comandos dentro del contenedor de la API
 # Crear tablas de la base de datos
 docker-compose exec api python setup.py database
 
-# Cargar datos iniciales (agente comercial de ventas)
+# Cargar datos iniciales (agente comercial de Kavak)
 docker-compose exec api python setup.py seeders
 ```
 
 ### 5. Generar embeddings y cargar información de Kavak
 
-Para generar los embeddings de los autos y cargar la información de Kavak:
+Para generar los embeddings de los autos y cargar la información/Propuesta de valor de Kavak:
 
 ```bash
 # Generar embeddings de autos desde CSV
@@ -80,11 +103,22 @@ La API estará disponible en: http://localhost:8000/api/v1
 - **Health Check**: http://localhost:8000/v1/health
 - **Información de la API**: http://localhost:8000/
 
+## Modo Interactivo: Ejecutar el Chat
+
+Para poder interactuar con el agente comercial de Kavak ya sea para desarrollo o prueba se puede ejecutar de manera local usando el script `chat.py`.
+
+### ¿Cómo ejecutarlo?
+
+
+
+```bash
+docker-compose exec api python interactive_chat.py
+```
+
+
 ## Documentación de la API
 
 ### Endpoints Principales
-
-> **Nota**: La API incluye endpoints para gestión completa de sesiones, incluyendo listar todas las sesiones, obtener mensajes específicos y manejar webhooks de WhatsApp.
 
 #### 1. Enviar Mensaje al Agente
 **POST** `/api/v1/chat/send-message`
@@ -196,18 +230,6 @@ Para ver la documentación completa de todos los endpoints disponibles:
 - **ReDoc**: http://localhost:8000/redoc
 
 
-## Modo Interactivo: Ejecutar el Chat
-
-Para poder interactuar con el agente conversacional de Kavak ya sea para desarrollo o prueba se puede ejecutar de manera local usando el script `chat.py`.
-
-### ¿Cómo ejecutarlo?
-
-
-
-```bash
-docker-compose exec api python interactive_chat.py
-```
-
 Vas a ver un prompt donde puedes escribir mensajes y recibir respuestas del agente. Usa `/quit` o `/exit` para salir del chat.
 
 Esto eliminará todas las tablas y las creará nuevamente desde cero.
@@ -225,6 +247,7 @@ docker-compose exec api python setup.py --help
 # Comandos de base de datos
 docker-compose exec api python setup.py database              # Crear tablas.
 docker-compose exec api python setup.py database --recreate  # Recrear todas las tablas.
+docker-compose exec api python seeders.py
 
 # Generar embeddings y datos
 docker-compose exec api python setup.py generate-car-embeddings  # Popular la tabla de autos.
@@ -236,14 +259,7 @@ docker-compose exec api python setup.py generate-car-embeddings --help
 docker-compose exec api python setup.py kavak-info-ingestion --help
 ```
 
-### Otros comandos útiles
-
-- Ejecutar seeders manualmente:
-  ```bash
-  docker-compose exec api python seeders.py
-  ```
-
-## Soporte
+## Troubleshooting
 
 Si tenes problemas:
 

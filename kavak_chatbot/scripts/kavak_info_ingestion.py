@@ -59,8 +59,9 @@ def run_kavak_info_ingestion():
         except Exception as e:
             logger.error(f"Error storing chunk {i+1}: {e}")
 
-    logger.info("Extraction complete!")
+    print("Extraction complete!")
 
     # Display summary
     all_records = kavak_service.get_all_kavak_info()
     logger.info(f"Total records in database: {len(all_records)}")
+    print(f"Total records in database: {len(all_records)}")
