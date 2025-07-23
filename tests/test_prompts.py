@@ -1,5 +1,5 @@
 import unittest
-from prompts.prompt_manager import prompt_manager, PromptManager
+from kavak_chatbot.prompts.prompt_manager import prompt_manager, PromptManager
 
 class TestConversationSummaryPrompts(unittest.TestCase):
     def test_get_conversation_summary_prompt(self):
@@ -97,4 +97,4 @@ class TestPromptManager(unittest.TestCase):
         self.assertEqual(initial_count, reloaded_count)
 
 if __name__ == "__main__":
-    unittest.main() 
+    unittest.main()

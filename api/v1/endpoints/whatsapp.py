@@ -4,18 +4,14 @@ WhatsApp endpoints for handling webhooks and messaging.
 
 import os
 import logging
-from fastapi import APIRouter, Request, Form, HTTPException
+from fastapi import APIRouter, Request, Form
 from fastapi.responses import JSONResponse
-from openai import OpenAI
 from twilio.rest import Client
 
-from services.user_service import UserService
-from services.chat_service import ChatService
-from services.memory_service import MemoryService
-from services.agent_service import AgentService
-from services.prompt_builder import PromptBuilder
-from services.llm_openai_adapter import OpenAIClientAdapter
-from utils.tokenizer import OpenAITokenizerWrapper, truncate_text_to_max_tokens
+from kavak_chatbot.services import UserService, ChatService, MemoryService, AgentService
+from kavak_chatbot.services.llm_openai_adapter import OpenAIClientAdapter
+from kavak_chatbot.services.prompt_builder import PromptBuilder
+from kavak_chatbot.utils import OpenAITokenizerWrapper, truncate_text_to_max_tokens
 
 logger = logging.getLogger(__name__)
 

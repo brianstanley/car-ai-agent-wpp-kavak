@@ -4,21 +4,12 @@ Chat interactivo usando MemAgentService para gestionar la conversación.
 """
 
 from dotenv import load_dotenv
-from typing import Tuple, Optional
-from uuid import UUID
 import os
 
-from db.session import SessionLocal
-from models.db.agent import AgentDB
-from models.db.persona import PersonaDB
-from models import Persona
-from services.prompt_builder import PromptBuilder
-from services.user_service import UserService
-from services.chat_service import ChatService
-from services.memory_service import MemoryService
-from services.agent_service import AgentService
-from services.llm_openai_adapter import OpenAIClientAdapter
-from utils.tokenizer import OpenAITokenizerWrapper, truncate_text_to_max_tokens
+from kavak_chatbot.services import UserService, ChatService, MemoryService, AgentService
+from kavak_chatbot.services.llm_openai_adapter import OpenAIClientAdapter
+from kavak_chatbot.services.prompt_builder import PromptBuilder
+from kavak_chatbot.utils import OpenAITokenizerWrapper, truncate_text_to_max_tokens
 
 # Cargar variables de entorno
 load_dotenv()

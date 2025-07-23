@@ -1,28 +1,25 @@
 #!/usr/bin/env python3
 """
-Memory Agent service for running agents with memory and conversation context.
+Agent service for managing conversation with LLM.
 """
+
 import json
 import os
 import sys
-
-from typing import Optional, List, Dict, Any, Tuple
+from typing import List, Dict, Any, Optional, Tuple
 from uuid import UUID
-from dotenv import load_dotenv
 
-from services.memory_service import MemoryService
-from services.chat_service import ChatService
-from services.session_service import SessionService
-from services.prompt_builder import PromptBuilder
-from services.user_service import UserService
-from tools import ExtractUserNameTool, CatalogSearchTool, CarFinancialTool, KavakInfoSearchTool
-from models.db.agent import AgentDB
-from models.db.persona import PersonaDB
-from models import Persona
+from kavak_chatbot.services.memory_service import MemoryService
+from kavak_chatbot.services.chat_service import ChatService
+from kavak_chatbot.services.session_service import SessionService
+from kavak_chatbot.services.prompt_builder import PromptBuilder
+from kavak_chatbot.services.user_service import UserService
+from kavak_chatbot.models.db.agent import AgentDB
+from kavak_chatbot.models.db.persona import PersonaDB
+from kavak_chatbot.models import Persona
 from db.session import SessionLocal
-from services.llm_protocol import LLMClientProtocol
+from kavak_chatbot.services.llm_protocol import LLMClientProtocol
 
-load_dotenv()
 
 class AgentConfig:
     DEFAULT_MODEL = "gpt-4o"
@@ -112,6 +109,7 @@ class AgentService:
         self.user = user
 
     def _initialize_tools(self) -> None:
+        from kavak_chatbot.tools import ExtractUserNameTool, CatalogSearchTool, CarFinancialTool, KavakInfoSearchTool
         self.extract_user_name_tool = ExtractUserNameTool(user_service=self.user_service)
         self.catalog_search_tool = CatalogSearchTool(llm_client=self.client)
         self.car_financial_tool = CarFinancialTool()

@@ -5,7 +5,7 @@ Script to generate embeddings for car data and save them to the cars table.
 import pandas as pd
 import os
 import sys
-from typing import List, Dict, Any
+from typing import List
 from tqdm import tqdm
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -13,7 +13,7 @@ from sqlalchemy.exc import SQLAlchemyError
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from db.session import SessionLocal
-from models.db import CarDB
+from kavak_chatbot.models.db import CarDB
 
 # Load environment variables
 load_dotenv()

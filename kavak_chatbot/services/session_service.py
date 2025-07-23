@@ -9,8 +9,8 @@ from datetime import datetime
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 
-from models.schemas.chat_session import ChatSession
-from models.db.chat_session import ChatSessionDB
+from kavak_chatbot.models.schemas.chat_session import ChatSession
+from kavak_chatbot.models.db.chat_session import ChatSessionDB
 from db.session import SessionLocal
 
 class SessionService:
@@ -127,12 +127,12 @@ class SessionService:
         try:
             with SessionLocal() as session:
                 query = select(ChatSessionDB).where(ChatSessionDB.user_id == user_id)
-                
+
                 if not include_ended:
                     query = query.where(ChatSessionDB.ended_at.is_(None))
-                
+
                 query = query.order_by(ChatSessionDB.started_at.desc())
-                
+
                 db_sessions = session.scalars(query).all()
                 return [self._to_schema(session) for session in db_sessions]
 

@@ -2,12 +2,11 @@
 Kavak information management endpoints.
 """
 
-from typing import List, Dict, Any, Optional
-from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel
+from typing import List, Dict
+from fastapi import APIRouter, HTTPException
 
-from services.kavak_info_service import KavakInfoService
-from models.schemas.kavak_info import (
+from kavak_chatbot.services import KavakInfoService
+from kavak_chatbot.models.schemas import (
     KavakInfoCreateRequest,
     KavakInfoResponse,
     KavakInfoSearchRequest
@@ -34,7 +33,7 @@ async def get_all_kavak_info() -> List[KavakInfoResponse]:
     try:
         kavak_service = KavakInfoService()
         records = kavak_service.get_all_kavak_info()
-        
+
         return [_convert_db_to_response(record) for record in records]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -50,10 +49,10 @@ async def create_kavak_info(info_data: KavakInfoCreateRequest) -> KavakInfoRespo
             title=info_data.title,
             metadata=info_data.metadata
         )
-        
+
         if not success:
             raise HTTPException(status_code=500, detail="Failed to create Kavak info record")
-        
+
         # Note: The service doesn't return the created record, so we can't return the full response
         # You might want to modify the service to return the created record
         raise HTTPException(status_code=501, detail="Service needs to be modified to return created record")
@@ -70,7 +69,7 @@ async def search_kavak_info(search_data: KavakInfoSearchRequest) -> List[KavakIn
             query=search_data.query,
             limit=search_data.limit or 5
         )
-        
+
         return [_convert_db_to_response(record) for record in similar_records]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -95,4 +94,4 @@ async def delete_kavak_info(info_id: str) -> Dict[str, str]:
         # For now, this is a placeholder
         raise HTTPException(status_code=501, detail="Not implemented yet")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) 
+        raise HTTPException(status_code=500, detail=str(e))

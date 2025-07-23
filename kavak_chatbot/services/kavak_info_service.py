@@ -1,6 +1,11 @@
+#!/usr/bin/env python3
+"""
+Service for managing Kavak information.
+"""
+
 from typing import List, Optional
 from sqlalchemy.orm import Session
-from models.db.kavak_info import KavakInfoDB
+from kavak_chatbot.models.db.kavak_info import KavakInfoDB
 from db.session import SessionLocal
 from openai import OpenAI
 import os

@@ -5,10 +5,9 @@ Tool for catalog search functionality.
 
 import json
 from typing import Dict, Any, List, Optional
-from openai import OpenAI
 from pydantic import BaseModel, Field
-from prompts.prompt_manager import prompt_manager
-from services.llm_protocol import LLMClientProtocol
+from kavak_chatbot.prompts.prompt_manager import prompt_manager
+from kavak_chatbot.services.llm_protocol import LLMClientProtocol
 
 
 class CarFilters(BaseModel):

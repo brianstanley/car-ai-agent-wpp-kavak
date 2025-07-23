@@ -2,13 +2,11 @@
 User management endpoints.
 """
 
-from typing import List, Dict, Any, Optional
-from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel
-from uuid import UUID
+from typing import List, Dict
+from fastapi import APIRouter, HTTPException
 
-from services.user_service import UserService
-from models.schemas.user import User, UserCreateRequest, UserUpdateRequest, UserResponse
+from kavak_chatbot.services import UserService
+from kavak_chatbot.models.schemas import UserCreateRequest, UserUpdateRequest, UserResponse
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -19,7 +17,7 @@ async def get_users() -> List[UserResponse]:
     try:
         user_service = UserService()
         users = user_service.get_all_users()
-        
+
         return [
             UserResponse(
                 id=str(user.id),
@@ -41,10 +39,10 @@ async def get_user(user_id: str) -> UserResponse:
     try:
         user_service = UserService()
         user = user_service.get_user_by_id(user_id)
-        
+
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
-        
+
         return UserResponse(
             id=str(user.id),
             phone_number=user.phone_number,
@@ -63,7 +61,7 @@ async def create_user(user_data: UserCreateRequest) -> UserResponse:
     try:
         user_service = UserService()
         user = user_service.get_or_create_user(user_data.phone_number)
-        
+
         return UserResponse(
             id=str(user.id),
             phone_number=user.phone_number,
@@ -86,10 +84,10 @@ async def update_user(user_id: str, user_data: UserUpdateRequest) -> UserRespons
             name=user_data.name,
             preferences=user_data.preferences
         )
-        
+
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
-        
+
         return UserResponse(
             id=str(user.id),
             phone_number=user.phone_number,
@@ -108,10 +106,10 @@ async def delete_user(user_id: str) -> Dict[str, str]:
     try:
         user_service = UserService()
         success = user_service.delete_user(user_id)
-        
+
         if not success:
             raise HTTPException(status_code=404, detail="User not found")
-        
+
         return {"message": "User deleted successfully"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) 
+        raise HTTPException(status_code=500, detail=str(e))

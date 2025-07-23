@@ -11,8 +11,8 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from db.config import Config
 from db.session import SessionLocal
-from models.db import UserDB
-from models.schemas.user import User
+from kavak_chatbot.models.db import UserDB
+from kavak_chatbot.models.schemas.user import User
 from enum import Enum
 
 

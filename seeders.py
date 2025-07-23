@@ -6,10 +6,10 @@ Seeders for creating test data in the database.
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
-from models.schemas.agent import Agent
+from kavak_chatbot.models.schemas.agent import Agent
 from db.config import Config
-from models import Persona
-from prompts.prompt_manager import prompt_manager
+from kavak_chatbot.models import Persona
+from kavak_chatbot.prompts.prompt_manager import prompt_manager
 
 # Fixed IDs for testing
 TEST_PERSONA_ID = "11111111-1111-1111-1111-111111111111"

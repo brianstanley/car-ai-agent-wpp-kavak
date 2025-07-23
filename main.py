@@ -4,22 +4,16 @@ FastAPI application with organized API structure and versioning.
 """
 
 import logging
-
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
-# Import the organized API structure
 from api.v1 import api_v1_router
 
-# Load environment variables
 load_dotenv()
 
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Create FastAPI app
 app = FastAPI(
     title="Kavak WhatsApp Bot API",
     description="API for Kavak WhatsApp Bot with organized endpoints and versioning",
@@ -28,7 +22,6 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Configure this properly for production
@@ -37,10 +30,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include API version 1
 app.include_router(api_v1_router)
 
-# Root endpoint
 @app.get("/")
 async def root():
     """Root endpoint with API information."""

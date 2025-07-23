@@ -4,7 +4,6 @@ Memory Management Service
 Handles storing and retrieving conversation messages.
 """
 
-import os
 from datetime import datetime, UTC
 from typing import List, Optional, Dict, Any
 from uuid import UUID
@@ -12,11 +11,11 @@ from sqlalchemy import select, func, case
 from sqlalchemy.exc import SQLAlchemyError
 from enum import Enum
 
-from models.db.conversation_memory import ConversationMemoryDB
-from models.db.summary import SummaryDB
+from kavak_chatbot.models.db.conversation_memory import ConversationMemoryDB
+from kavak_chatbot.models.db.summary import SummaryDB
 from db.session import SessionLocal
-from prompts.prompt_manager import prompt_manager
-from services.llm_protocol import LLMClientProtocol
+from kavak_chatbot.prompts.prompt_manager import prompt_manager
+from kavak_chatbot.services.llm_protocol import LLMClientProtocol
 
 # Configuration constants
 class MemorySummaryConfig:

@@ -4,12 +4,11 @@ Tool for semantic search of Kavak information.
 """
 
 from typing import Dict, Any, List, Optional
-from openai import OpenAI
 from enum import Enum
 
-from services.kavak_info_service import KavakInfoService
-from prompts.prompt_manager import prompt_manager
-from services.llm_protocol import LLMClientProtocol
+from kavak_chatbot.services.kavak_info_service import KavakInfoService
+from kavak_chatbot.prompts.prompt_manager import prompt_manager
+from kavak_chatbot.services.llm_protocol import LLMClientProtocol
 
 
 MAX_RESULTS_DEFAULT = 3

@@ -6,8 +6,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from docling.document_converter import DocumentConverter
 from docling_core.transforms.chunker.hybrid_chunker import HybridChunker
-from utils.tokenizer import OpenAITokenizerWrapper
-from services.kavak_info_service import KavakInfoService
+from kavak_chatbot.utils.tokenizer import OpenAITokenizerWrapper
+from kavak_chatbot.services import KavakInfoService
 
 load_dotenv()
 

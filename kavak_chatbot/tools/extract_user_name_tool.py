@@ -4,7 +4,7 @@ Tool for extracting and saving user names.
 """
 
 from typing import Dict, Any, Optional
-from services.user_service import UserService
+from kavak_chatbot.services.user_service import UserService
 
 
 class ExtractUserNameTool:

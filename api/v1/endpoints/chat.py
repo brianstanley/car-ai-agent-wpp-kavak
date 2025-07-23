@@ -5,13 +5,11 @@ Chat session management endpoints.
 from typing import List, Dict, Optional
 from fastapi import APIRouter, HTTPException
 
-from services.chat_service import ChatService
-from services.session_service import SessionService
-from services.memory_service import MemoryService
-from services.agent_service import AgentService
-from services.user_service import UserService
-from services.prompt_builder import PromptBuilder
-from models.schemas.chat import (
+from kavak_chatbot.services.llm_openai_adapter import OpenAIClientAdapter
+from kavak_chatbot.services.prompt_builder import PromptBuilder
+from kavak_chatbot.services.session_service import SessionService
+from kavak_chatbot.services import MemoryService, AgentService, UserService, ChatService
+from kavak_chatbot.models.schemas.chat import (
     ChatSessionResponse,
     ChatSessionCreateRequest,
     MessageResponse,
@@ -21,8 +19,7 @@ from models.schemas.chat import (
 from pydantic import BaseModel
 from uuid import UUID
 import os
-from services.llm_openai_adapter import OpenAIClientAdapter
-from utils.tokenizer import OpenAITokenizerWrapper, truncate_text_to_max_tokens
+from kavak_chatbot.utils import OpenAITokenizerWrapper, truncate_text_to_max_tokens
 import logging
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
@@ -106,7 +103,7 @@ async def get_user_chat_sessions(phone_number: str) -> List[ChatSessionResponse]
     """Get all chat sessions for a user by phone number."""
     try:
         from uuid import UUID
-        from services.user_service import UserService
+        from kavak_chatbot.services import UserService
 
         # First get the user by phone number
         user_service = UserService()

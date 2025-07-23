@@ -5,8 +5,7 @@ This script helps with initial project setup and verification.
 """
 import argparse
 from db.database import engine
-from models.db import agent, chat_session, conversation_memory, kavak_info, persona, summary, user  # Asegura que todos los modelos estén importados
-from sqlalchemy.orm import declarative_base
+from kavak_chatbot.models.db import agent  # Asegura que todos los modelos estén importados
 
 # Si tienes un Base centralizado, usa ese. Si no, crea uno aquí:
 Base = agent.Base  # Ajusta si tu Base está en otro módulo
